@@ -1,0 +1,127 @@
+{
+  "message": "3000원 이하 두부 3개 추천해줘",
+  "status": 200,
+  "mode": "claude",
+  "text": "조건에 따른 추천 후보입니다. 개인 기호·맛에 대한 평가는 포함하지 않았습니다.\n조건에 맞는 등록 상품 64건 중 3건을 확인했습니다. 가격은 수집 시점 기준이며 실제 계약 조건은 상세 페이지에서 확인해 주세요.",
+  "products": [
+    {
+      "id": 24350492,
+      "name": "요리용소스, (주문자상표부착)풀무원식품, 해물순두부찌개양념, 140g",
+      "category": "양념/소스류",
+      "subcategory": "요리용소스",
+      "imageUrl": "https://shop.g2b.go.kr/static/CataAttach/XezCatalog/XZMOK/item_image/2021/09/02/89f0e2c1-8630-486f-8671-6a00ac64ffc7.jpg?postfix=2026_09_29",
+      "unitPrice": 980,
+      "gramPrice": 7,
+      "packGrams": 140,
+      "unit": "개",
+      "sourceUrl": "https://shop.g2b.go.kr/",
+      "collectedAt": "2026-09-29T05:32:54.122Z",
+      "nutritionBasis": "기준 중량 미제공",
+      "protein": null,
+      "sodium": null,
+      "calories": null,
+      "ingredients": "해물(상품기준) 15.7 %, 바지락밑국물 5 %(고형분 54 %)",
+      "verifiedNutrition": null
+    },
+    {
+      "id": 24350494,
+      "name": "요리용소스, (주문자상표부착)풀무원식품, 정통순두부찌개양념, 140g",
+      "category": "양념/소스류",
+      "subcategory": "요리용소스",
+      "imageUrl": "https://shop.g2b.go.kr/static/CataAttach/XezCatalog/XZMOK/item_image/2021/09/02/074989c7-f50d-432b-85f7-ba222e7d34bc.jpg?postfix=2026_09_29",
+      "unitPrice": 890,
+      "gramPrice": 6.357142857142857,
+      "packGrams": 140,
+      "unit": "개",
+      "sourceUrl": "https://shop.g2b.go.kr/",
+      "collectedAt": "2026-09-29T05:32:54.122Z",
+      "nutritionBasis": "기준 중량 미제공",
+      "protein": null,
+      "sodium": null,
+      "calories": null,
+      "ingredients": "표기 없음",
+      "verifiedNutrition": null
+    },
+    {
+      "id": 24350495,
+      "name": "요리용소스, (주문자상표부착)풀무원식품, 중화마파두부양념소스, 130g",
+      "category": "양념/소스류",
+      "subcategory": "요리용소스",
+      "imageUrl": "https://shop.g2b.go.kr/static/CataAttach/XezCatalog/XZMOK/item_image/2021/09/02/285d3d5b-8fe4-48f8-a85b-49bb2dc9de0a.jpg?postfix=2026_09_29",
+      "unitPrice": 980,
+      "gramPrice": 7.538461538461538,
+      "packGrams": 130,
+      "unit": "개",
+      "sourceUrl": "https://shop.g2b.go.kr/",
+      "collectedAt": "2026-09-29T05:32:54.122Z",
+      "nutritionBasis": "기준 중량 미제공",
+      "protein": null,
+      "sodium": null,
+      "calories": null,
+      "ingredients": "국산돼지고기 13 %, 고추기름 8 %",
+      "verifiedNutrition": null
+    }
+  ],
+  "count": 64,
+  "answerKind": "recommendation",
+  "recommendations": [
+    {
+      "id": 24350492,
+      "reasons": [
+        "등록 카탈로그에서 검색 조건에 맞는 상품",
+        "판매 단위 가격 3,000원 이하"
+      ]
+    },
+    {
+      "id": 24350494,
+      "reasons": [
+        "등록 카탈로그에서 검색 조건에 맞는 상품",
+        "판매 단위 가격 3,000원 이하"
+      ]
+    },
+    {
+      "id": 24350495,
+      "reasons": [
+        "등록 카탈로그에서 검색 조건에 맞는 상품",
+        "판매 단위 가격 3,000원 이하"
+      ]
+    }
+  ],
+  "explanationMode": "claude_verified",
+  "highlights": [
+    "조건에 따른 추천 후보입니다. 개인 기호·맛에 대한 평가는 포함하지 않았습니다.",
+    "조건에 맞는 등록 상품 64건 중 3건을 확인했습니다. 가격은 수집 시점 기준이며 실제 계약 조건은 상세 페이지에서 확인해 주세요."
+  ],
+  "query": {
+    "intent": "recommend",
+    "query": "두부",
+    "queries": [],
+    "productIds": [],
+    "maxPrice": 3000,
+    "minPrice": null,
+    "priceExclusive": false,
+    "sort": "default",
+    "direction": "asc",
+    "limit": 3,
+    "productId": null,
+    "nutrient": null,
+    "minNutrient": null,
+    "maxNutrient": null,
+    "basis": null,
+    "serving": null,
+    "conditions": [],
+    "days": 7,
+    "people": 120,
+    "exclusions": [],
+    "mealBudgets": [
+      4000,
+      5000,
+      4000
+    ],
+    "dessert": true,
+    "cuisine": "한식",
+    "dailyTargets": [],
+    "targetSource": "",
+    "clarifications": []
+  }
+}

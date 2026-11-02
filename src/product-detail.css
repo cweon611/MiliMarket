@@ -1,0 +1,76 @@
+.product-detail-page{padding:0 0 20px}
+.detail-toolbar{display:flex;align-items:center;justify-content:space-between;gap:15px;margin:0 0 20px}
+.detail-toolbar>div{display:flex;gap:8px}
+.detail-back{font-size:14px;color:#77896e;padding:8px 0}
+.detail-outline{border:1px solid #91a881;color:#496d38;background:white;border-radius:4px;padding:9px 12px;font-size:13px}
+.detail-toolbar .primary{font-size:13px;border-radius:4px;padding:10px 14px}
+.detail-columns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;align-items:start}
+.detail-column{display:flex;flex-direction:column;gap:15px;min-width:0}
+.detail-box{border:1px solid #dfe7d8;background:white;border-radius:5px;padding:18px;overflow:hidden}
+.detail-box h2{display:flex;align-items:center;gap:7px;font-size:15px;margin:0 0 16px;font-weight:700}
+.detail-box h2::before{content:'';width:3px;height:12px;background:#527a42;border-radius:2px}
+.detail-box dl{font-size:13px;margin:0}
+.detail-box dl>div{padding:11px 0;gap:12px}
+.detail-box dl>div:last-child{border-bottom:0}
+.detail-box dd{color:#334c2b;font-weight:500}
+.detail-box .accent{color:#51773e;font-weight:700}
+.detail-summary{padding:0}
+.detail-summary>.food-art{height:220px}
+.detail-summary .plate{transform:scale(1.35) rotate(-15deg)}
+.detail-summary-body{padding:18px}
+.detail-summary-body .detail-tags{margin:0 0 10px}
+.detail-summary-body .detail-tags span{font-size:12px;padding:3px 7px}
+.detail-summary h1{font-size:22px;letter-spacing:-.7px;line-height:1.5;margin:0 0 5px}
+.detail-maker{font-size:13px;color:#8a987e;margin:0}
+.detail-rating{display:flex;gap:5px;align-items:center;color:#b4944e;font-size:14px;margin:12px 0}
+.detail-rating span{font-size:12px;color:#94a089;margin-left:5px}
+.detail-description{font-size:14px;line-height:1.9;color:#7b8c70;margin:0 0 15px}
+.preference-line{display:flex;justify-content:space-between;font-size:13px;color:#7b8e6e}
+.preference-line strong{color:#507a3e}
+.preference-track,.nutrient-track{height:6px;background:#f0f4eb;border-radius:4px;margin-top:7px;overflow:hidden}
+.preference-track i{display:block;height:100%;background:#6c9458;border-radius:4px}
+.ingredients-block{padding-top:12px;border-top:1px solid #e6ecdf;margin-top:5px}
+.ingredients-block h3{font-size:13px;color:#7c8d71;margin:0 0 7px;font-weight:500}
+.ingredients-block p{font-size:13px;line-height:1.8;margin:0;color:#526a44}
+.detail-price-box{border:1px solid #e1e9d9;background:#f6f9f2;padding:16px;border-radius:4px;margin-bottom:10px}
+.detail-price-box>span{font-size:13px;color:#8a9a7d}
+.detail-price-box>strong{display:block;font-size:29px;letter-spacing:-1px;margin:6px 0;color:#2e4d28}
+.detail-price-box small{font-size:15px;margin-left:3px}
+.detail-price-box p{font-size:13px;margin:0;color:#839675}
+.detail-price-note{font-size:13px;background:#faf8ed;border:1px solid #eee7c8;border-radius:4px;padding:11px;color:#9a8251;line-height:1.7;margin:12px 0 0}
+.section-caption{font-size:13px;color:#8c9a80;margin:-6px 0 13px}
+.serving-highlight{display:flex;align-items:center;flex-direction:column;background:#31573d;color:white;border-radius:4px;padding:20px;margin-bottom:20px}
+.serving-highlight strong{font-size:34px;letter-spacing:-1px}
+.serving-highlight small{font-size:20px;margin-left:3px}
+.serving-highlight span{font-size:13px;color:#ccddc0;margin-top:3px}
+.nutrition-label{font-size:13px;color:#6f865f;margin:0 0 4px}
+.nutrition-basis{font-size:12px;color:#92a185;line-height:1.8;margin:14px 0 0}
+.portion-adjusted{font-size:13px;color:#6e865d;background:#f1f5eb;padding:10px;line-height:1.7}
+.detail-calculator{padding:0}
+.detail-calculator .calculator-panel{padding:18px}
+.detail-calculator .calculator-heading{padding:0 0 12px;border-bottom:1px solid #e2eadb}
+.detail-calculator .calculator-heading h2{font-size:15px;margin:0}
+.detail-calculator .calculator-heading h2::before{display:none}
+.detail-calculator .calculator-heading svg{width:17px}
+.detail-calculator .calculator-product{display:none}
+.detail-calculator .calculator-inputs{display:block;background:none;border:0;padding:0;margin-top:14px}
+.detail-calculator .calculator-inputs label{display:flex;justify-content:space-between;font-size:13px;color:#7f9074;font-weight:400;margin-bottom:7px}
+.detail-calculator .calculator-inputs label small{margin:0}
+.detail-calculator .calculator-inputs>div{position:relative}
+.detail-calculator .calculator-inputs input{width:100%;text-align:center;font-size:15px;border-color:#dce6d3;padding:9px 25px}
+.detail-calculator .calculator-inputs>div>span{position:absolute;right:12px;font-size:13px;color:#8b9b80}
+.detail-calculator .calculator-results{background:#f7f9f4;padding:0 12px;border:1px solid #e4ebdd;border-radius:4px;margin-top:12px}
+.detail-calculator .calculator-results dl{margin:0;font-size:13px}
+.detail-calculator .calculator-results dl>div{padding:8px 0}
+.detail-calculator .calculator-total{padding:11px 0;border:0}
+.detail-calculator .calculator-total>span{font-size:13px}
+.detail-calculator .calculator-total>strong{font-size:23px}
+.detail-calculator .calculator-note{margin:12px 0;font-size:12px;background:#eff7eb;padding:10px;border:1px solid #dcebd4;border-radius:4px}
+.detail-calculator .calculator-actions>button{font-size:13px;padding:10px}
+.nutrient-bars{display:flex;flex-direction:column;gap:15px}
+.nutrient-bars>div>div:first-child{display:flex;justify-content:space-between;font-size:13px;color:#809170}
+.nutrient-bars b{font-weight:500;color:#4e6941}
+.nutrient-track i{display:block;height:100%;border-radius:4px}
+@media(max-width:1050px){.detail-columns{grid-template-columns:repeat(2,minmax(0,1fr))}.detail-column:last-child{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;align-items:start}}
+@media(max-width:680px){.detail-columns{grid-template-columns:1fr;gap:15px}.detail-column:last-child{grid-column:auto;display:flex}.detail-toolbar{align-items:flex-start;gap:8px}.detail-toolbar>div{gap:5px}.detail-toolbar button{font-size:13px}.detail-toolbar .primary,.detail-outline{padding:9px}.detail-toolbar svg{width:13px}.detail-summary>.food-art{height:200px}.detail-summary h1{font-size:21px}}
+.alternative-nutrition{font-size:14px;display:flex;flex-wrap:wrap;gap:4px 10px;margin:6px 0}.alternative-nutrition.muted,.alternative-comment.muted{color:#7a837c}.alternative-nutrition .better{color:#2f6b2c;font-weight:700}.alternative-nutrition .worse{color:#a2532a;font-weight:700}.alternative-comment-button{margin-top:8px;width:100%;padding:8px;border:1px dashed #b9c8b1;background:#f4f8f0;border-radius:6px;font-weight:700;color:#2f4a2c}.alternative-comment{margin-top:8px;padding:10px;background:#eef4e9;border-radius:8px;font-size:14px}.alternative-comment p{margin:4px 0}.alternative-comment small{color:#607157}

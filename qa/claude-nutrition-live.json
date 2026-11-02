@@ -1,0 +1,98 @@
+{
+  "message": "바나나우유 100mL당 단백질 높은 순으로 3개 추천해줘",
+  "status": 200,
+  "mode": "claude",
+  "products": [],
+  "nutritionEvidence": [],
+  "count": 7,
+  "coverage": {
+    "matched": 7,
+    "queried": 7,
+    "confirmed": 0,
+    "partial": false
+  },
+  "comparison": [],
+  "excluded": [
+    {
+      "id": 24946802,
+      "name": "가공우유, 매일유업, 유기농바나나우유ORGANIC MILK, 125mL",
+      "reason": "상품과 일치하는 확정 영양 자료 없음"
+    },
+    {
+      "id": 25680524,
+      "name": "가공우유, 서울우유, 서울우유미노스바나나우유, 235mL",
+      "reason": "상품과 일치하는 확정 영양 자료 없음"
+    },
+    {
+      "id": 24960167,
+      "name": "가공우유, (주문자상표부착)빙그레, 빙그레바나나맛우유MiNi, 120mL",
+      "reason": "상품과 일치하는 확정 영양 자료 없음"
+    },
+    {
+      "id": 24960169,
+      "name": "가공우유, 빙그레, 빙그레바나나맛우유Light, 240mL",
+      "reason": "상품과 일치하는 확정 영양 자료 없음"
+    },
+    {
+      "id": 24960173,
+      "name": "가공우유, 빙그레, 빙그레바나나맛우유, 240mL",
+      "reason": "상품과 일치하는 확정 영양 자료 없음"
+    },
+    {
+      "id": 25007232,
+      "name": "가공우유, 남양유업, 우유듬뿍바나나에몽, 200mL",
+      "reason": "상품과 일치하는 확정 영양 자료 없음"
+    },
+    {
+      "id": 25883036,
+      "name": "떡, (주문자상표부착)아머드 프레시, 찐-바나나우유떡, 360(60g×6개)g",
+      "reason": "상품과 일치하는 확정 영양 자료 없음"
+    }
+  ],
+  "verified": true,
+  "blocked": false,
+  "text": "검색 7건 중 7건 조회 · 보고번호 일치 0건. \n100mL 기준 조건을 만족하는 확정 상품이 없습니다. 기준·검색어를 조정하거나 영양 데이터를 더 가져와 주세요.\n\n제외 7건: 상품과 일치하는 확정 영양 자료 없음\n자료 출처: 식약처 식품영양성분DB. 이름만 유사한 참고 자료는 계산하지 않았습니다.",
+  "answerKind": "recommendation",
+  "recommendations": [],
+  "explanationMode": "claude_verified",
+  "highlights": [
+    "검색 7건 중 7건 조회 · 보고번호 일치 0건. ",
+    "100mL 기준 조건을 만족하는 확정 상품이 없습니다. 기준·검색어를 조정하거나 영양 데이터를 더 가져와 주세요.",
+    "제외 7건: 상품과 일치하는 확정 영양 자료 없음"
+  ],
+  "query": {
+    "intent": "recommend",
+    "query": "바나나우유",
+    "queries": [],
+    "productIds": [],
+    "maxPrice": null,
+    "minPrice": null,
+    "priceExclusive": false,
+    "sort": "protein",
+    "direction": "desc",
+    "limit": 3,
+    "productId": null,
+    "nutrient": "protein",
+    "minNutrient": null,
+    "maxNutrient": null,
+    "basis": {
+      "amount": 100,
+      "unit": "mL"
+    },
+    "serving": null,
+    "conditions": [],
+    "days": 7,
+    "people": 120,
+    "exclusions": [],
+    "mealBudgets": [
+      4000,
+      5000,
+      4000
+    ],
+    "dessert": true,
+    "cuisine": "한식",
+    "dailyTargets": [],
+    "targetSource": "",
+    "clarifications": []
+  }
+}

@@ -1,0 +1,331 @@
+{
+  "reviewedAt": "2026-10-14T13:21:20.910Z",
+  "results": [
+    {
+      "label": "simple-search",
+      "message": "바나나우유 찾아줘",
+      "http": 200,
+      "mode": "demo",
+      "text": "조건에 맞는 등록 상품 7건 중 5건을 확인했습니다. 가격은 수집 시점 기준이며 실제 계약 조건은 상세 페이지에서 확인해 주세요.",
+      "query": {
+        "intent": "search",
+        "query": "바나나우유",
+        "maxPrice": null,
+        "sort": "default",
+        "limit": 5,
+        "productId": null,
+        "nutrient": null,
+        "minNutrient": null,
+        "maxNutrient": null,
+        "days": 7,
+        "people": 120,
+        "exclusions": [],
+        "mealBudgets": [
+          4000,
+          5000,
+          4000
+        ],
+        "dessert": true,
+        "cuisine": "한식"
+      },
+      "blocked": false,
+      "count": 7,
+      "products": [
+        {
+          "id": 24946802,
+          "name": "가공우유, 매일유업, 유기농바나나우유ORGANIC MILK, 125mL"
+        },
+        {
+          "id": 25680524,
+          "name": "가공우유, 서울우유, 서울우유미노스바나나우유, 235mL"
+        },
+        {
+          "id": 24960167,
+          "name": "가공우유, (주문자상표부착)빙그레, 빙그레바나나맛우유MiNi, 120mL"
+        },
+        {
+          "id": 24960169,
+          "name": "가공우유, 빙그레, 빙그레바나나맛우유Light, 240mL"
+        },
+        {
+          "id": 24960173,
+          "name": "가공우유, 빙그레, 빙그레바나나맛우유, 240mL"
+        }
+      ],
+      "evidence": []
+    },
+    {
+      "label": "requested-limit",
+      "message": "바나나우유 3개 찾아줘",
+      "http": 200,
+      "mode": "demo",
+      "text": "현재 등록 데이터에서 조건에 맞는 상품을 찾지 못했습니다. 검색어나 가격 조건을 바꿔 주세요.",
+      "query": {
+        "intent": "search",
+        "query": "바나나우유 3개",
+        "maxPrice": null,
+        "sort": "default",
+        "limit": 5,
+        "productId": null,
+        "nutrient": null,
+        "minNutrient": null,
+        "maxNutrient": null,
+        "days": 7,
+        "people": 120,
+        "exclusions": [],
+        "mealBudgets": [
+          4000,
+          5000,
+          4000
+        ],
+        "dessert": true,
+        "cuisine": "한식"
+      },
+      "blocked": false,
+      "count": 0,
+      "products": [],
+      "evidence": []
+    },
+    {
+      "label": "unknown",
+      "message": "우주수박없는식품 찾아줘",
+      "http": 200,
+      "mode": "demo",
+      "text": "현재 등록 데이터에서 조건에 맞는 상품을 찾지 못했습니다. 검색어나 가격 조건을 바꿔 주세요.",
+      "query": {
+        "intent": "search",
+        "query": "우주수박없는식품",
+        "maxPrice": null,
+        "sort": "default",
+        "limit": 5,
+        "productId": null,
+        "nutrient": null,
+        "minNutrient": null,
+        "maxNutrient": null,
+        "days": 7,
+        "people": 120,
+        "exclusions": [],
+        "mealBudgets": [
+          4000,
+          5000,
+          4000
+        ],
+        "dessert": true,
+        "cuisine": "한식"
+      },
+      "blocked": false,
+      "count": 0,
+      "products": [],
+      "evidence": []
+    },
+    {
+      "label": "nutrition-source",
+      "message": "25100569 영양정보 알려줘",
+      "http": 200,
+      "mode": "demo",
+      "text": "확정할 수 있는 상품별 영양 자료가 없어 조회 상태와 참고 자료를 안내합니다.\n국탕류, 아워홈, 시원한황태해장국, 300g [참고 자료 · 상품 일치 미확인]\n맛의고수속시원한황태해장국 · 100g 기준\n열량 23 kcal / 단백질 4 g / 지방 1.1 g / 탄수화물 0 g / 나트륨 300 mg\n자료 수정 2026-05-07 · 조회 2026-10-14\n시원한황태해장국 · 100g 기준\n열량 22 kcal / 단백질 2.1 g / 지방 1.2 g / 탄수화물 0.8 g / 나트륨 269 mg\n자료 수정 2026-05-07 · 조회 2026-10-14\n자료 출처: 식약처 식품영양성분DB(공공데이터포털). 1일 영양 기준 충족 여부는 아직 판정하지 않습니다.",
+      "query": {
+        "intent": "nutrition",
+        "query": "",
+        "maxPrice": null,
+        "sort": "default",
+        "limit": 5,
+        "productId": 25100569,
+        "nutrient": null,
+        "minNutrient": null,
+        "maxNutrient": null,
+        "days": 7,
+        "people": 120,
+        "exclusions": [],
+        "mealBudgets": [
+          4000,
+          5000,
+          4000
+        ],
+        "dessert": true,
+        "cuisine": "한식"
+      },
+      "blocked": false,
+      "count": 1,
+      "products": [
+        {
+          "id": 25100569,
+          "name": "국탕류, 아워홈, 시원한황태해장국, 300g"
+        }
+      ],
+      "evidence": [
+        {
+          "status": "ok",
+          "match": "reference",
+          "productId": 25100569,
+          "records": [
+            {
+              "code": "P123-207020300-0270",
+              "name": "맛의고수속시원한황태해장국",
+              "reportNumber": "200003643481240",
+              "basis": {
+                "text": "100g",
+                "amount": 100,
+                "unit": "g"
+              },
+              "protein": {
+                "label": "단백질",
+                "unit": "g",
+                "value": 4,
+                "raw": "4.00"
+              },
+              "calories": {
+                "label": "열량",
+                "unit": "kcal",
+                "value": 23,
+                "raw": "23.00"
+              }
+            },
+            {
+              "code": "P123-207020300-0596",
+              "name": "시원한황태해장국",
+              "reportNumber": "20020614179995",
+              "basis": {
+                "text": "100g",
+                "amount": 100,
+                "unit": "g"
+              },
+              "protein": {
+                "label": "단백질",
+                "unit": "g",
+                "value": 2.1,
+                "raw": "2.10"
+              },
+              "calories": {
+                "label": "열량",
+                "unit": "kcal",
+                "value": 22,
+                "raw": "22.00"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "explicit-basis",
+      "message": "25100569 100g당 단백질 1g 이상인지 알려줘",
+      "http": 200,
+      "mode": "demo",
+      "text": "영양 조건을 충족했다고 추천하려면 비교 기준량(100g·100mL·1인분)을 먼저 정해야 합니다. 현재는 조회된 원자료와 기준량을 함께 보여드립니다. 이름만 비슷한 자료와 기준량 미제공 자료는 상품 비교에 사용하지 않습니다.\n국탕류, 아워홈, 시원한황태해장국, 300g [참고 자료 · 상품 일치 미확인]\n맛의고수속시원한황태해장국 · 100g 기준\n단백질 4 g\n자료 수정 2026-05-07 · 조회 2026-10-14\n시원한황태해장국 · 100g 기준\n단백질 2.1 g\n자료 수정 2026-05-07 · 조회 2026-10-14",
+      "query": {
+        "intent": "nutrition",
+        "query": "100 1g 이상인지",
+        "maxPrice": null,
+        "sort": "protein",
+        "limit": 5,
+        "productId": 25100569,
+        "nutrient": "protein",
+        "minNutrient": null,
+        "maxNutrient": null,
+        "days": 7,
+        "people": 120,
+        "exclusions": [],
+        "mealBudgets": [
+          4000,
+          5000,
+          4000
+        ],
+        "dessert": true,
+        "cuisine": "한식"
+      },
+      "blocked": true,
+      "count": 1,
+      "products": [
+        {
+          "id": 25100569,
+          "name": "국탕류, 아워홈, 시원한황태해장국, 300g"
+        }
+      ],
+      "evidence": [
+        {
+          "status": "ok",
+          "match": "reference",
+          "productId": 25100569,
+          "records": [
+            {
+              "code": "P123-207020300-0270",
+              "name": "맛의고수속시원한황태해장국",
+              "reportNumber": "200003643481240",
+              "basis": {
+                "text": "100g",
+                "amount": 100,
+                "unit": "g"
+              },
+              "protein": {
+                "label": "단백질",
+                "unit": "g",
+                "value": 4,
+                "raw": "4.00"
+              },
+              "calories": {
+                "label": "열량",
+                "unit": "kcal",
+                "value": 23,
+                "raw": "23.00"
+              }
+            },
+            {
+              "code": "P123-207020300-0596",
+              "name": "시원한황태해장국",
+              "reportNumber": "20020614179995",
+              "basis": {
+                "text": "100g",
+                "amount": 100,
+                "unit": "g"
+              },
+              "protein": {
+                "label": "단백질",
+                "unit": "g",
+                "value": 2.1,
+                "raw": "2.10"
+              },
+              "calories": {
+                "label": "열량",
+                "unit": "kcal",
+                "value": 22,
+                "raw": "22.00"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "plan-conditions",
+      "message": "120명 7일 식단, 아침 3000원 점심 4000원 저녁 3000원, 새우 제외, 후식 없이",
+      "http": 200,
+      "mode": "demo",
+      "text": "요청 조건을 식단 시뮬레이터에 전달할 수 있습니다. 예산·기간·제외 재료를 확인하고 초안을 생성해 주세요. 영양 충족 여부는 기준 데이터 연결 후 검증됩니다.",
+      "planSettings": {
+        "intent": "plan",
+        "query": "",
+        "maxPrice": null,
+        "sort": "default",
+        "limit": 5,
+        "productId": null,
+        "nutrient": null,
+        "minNutrient": null,
+        "maxNutrient": null,
+        "days": 7,
+        "people": 120,
+        "exclusions": [],
+        "mealBudgets": [
+          4000,
+          5000,
+          4000
+        ],
+        "dessert": true,
+        "cuisine": "한식"
+      },
+      "blocked": false,
+      "products": [],
+      "evidence": []
+    }
+  ]
+}

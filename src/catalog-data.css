@@ -1,0 +1,36 @@
+/* Imported catalog: preserve missing values and accommodate full Excel names. */
+.food-art.catalog-art{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:linear-gradient(135deg,#edf2e5,#dce8d6);color:#59764c;text-align:center;position:relative}
+.food-art.catalog-art:before,.food-art.catalog-art:after{display:none}
+.food-art.catalog-art strong{font-size:18px;letter-spacing:1px}
+.food-art.catalog-art span{font-size:13px;color:#708568}
+.search-workspace .product-card{display:flex;flex-direction:column}
+.search-workspace .product-info{flex:1;display:flex;flex-direction:column}
+.search-workspace .product-name{text-align:left;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.search-workspace .spec{overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.search-workspace .price{margin-top:auto;padding-top:5px}
+.search-workspace .price strong{font-size:18px}
+.search-workspace .product-metrics{min-height:34px}
+.search-workspace .view-columns-1 .list-ingredients{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.search-workspace .view-columns-1 .product-card{display:grid}
+.search-workspace .view-columns-4 .price strong{font-size:15px}
+.search-workspace .view-columns-4 .catalog-art strong{font-size:15px}
+.catalog-pagination{display:flex;justify-content:center;align-items:center;gap:16px;margin:26px 0;font-size:14px}
+.catalog-pagination button,.catalog-pagination select,.catalog-load button{border:1px solid #ccd9c5;background:#fff;border-radius:5px;padding:8px 12px;color:#31573d}
+button:disabled{opacity:.45;cursor:not-allowed}
+.catalog-load{padding:16px;margin:18px 0;border:1px solid #d3e0cd;border-radius:6px;background:#f6f9f1;color:#31573d}
+.calculator-panel .calculator-inputs{margin-top:12px}
+.calculator-panel .calculator-inputs small{font-size:12px;color:#73866c}
+.calculator-panel .calculator-product h3{overflow-wrap:anywhere;line-height:1.6}
+.detail-box dd{overflow-wrap:anywhere;max-width:67%;white-space:pre-wrap}
+.detail-box dt{flex-shrink:0;max-width:40%}
+.detail-summary h1,.detail-tags span,.ingredients-block p{overflow-wrap:anywhere}
+.detail-tags{flex-wrap:wrap}
+.detail-tags span{white-space:normal}
+.comparison-body dd{max-width:65%;overflow-wrap:anywhere}
+.comparison-body h3{overflow-wrap:anywhere}
+.imported-order-item{grid-template-columns:minmax(0,1fr) 140px 150px 30px;gap:16px}
+.imported-order-item h3{overflow-wrap:anywhere}
+.order-inputs{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.order-inputs label{display:flex;flex-direction:column;gap:5px;color:#617756;font-size:13px}
+.order-inputs input{width:125px;padding:8px;border:1px solid #cddbc3;border-radius:4px;background:#fafcf8}
+@media(max-width:760px){.search-workspace .view-columns-1 .product-card{display:flex}.imported-order-item{display:flex;flex-wrap:wrap}.imported-order-item>div{width:100%}.catalog-pagination{gap:10px}.order-inputs input{width:100px}}

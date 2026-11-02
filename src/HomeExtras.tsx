@@ -1,0 +1,9 @@
+import { Beef, Fish, Leaf, Wheat, Milk, Package, Search, GitCompareArrows, ClipboardList, ArrowUpRight } from 'lucide-react'
+import './home.css'
+
+export function HomeExtras({onCategory}: {onCategory: (category: string) => void}) {
+  return <div className="home-extras">
+    <section className="home-category-section" aria-labelledby="home-categories"><div className="home-section-title"><div><span>분류별 빠른 검색</span><h2 id="home-categories">어떤 식재료를 찾으세요?</h2></div><div className="home-fruit-accent"><p>다채롭게 고르고,<br/><strong>더 맛있게 채우세요.</strong></p><img src="/images/home-fruit-snacks.png" alt="" aria-hidden="true" width="1536" height="1024" loading="lazy"/></div></div><div className="home-category-grid">{[{name:'수육류',en:'양념육 · 알가공품 · 햄류',icon:Beef},{name:'어패류',en:'수산물 · 어육가공품 · 김',icon:Fish},{name:'두부류',en:'두부 · 콩류가공품',icon:Leaf},{name:'분식류',en:'냉동밥 · 만두 · 면류',icon:Wheat},{name:'음료류',en:'우유 · 두유 · 요구르트',icon:Milk},{name:'양념/소스류',en:'드레싱 · 카레 · 소스',icon:Package}].map(c => <button key={c.name} onClick={() => onCategory(c.name)}><ArrowUpRight className="category-arrow" size={15}/><c.icon className="category-drawing" size={30} strokeWidth={1.4}/><strong>{c.name}</strong><small>{c.en}</small></button>)}</div></section>
+    <section className="home-guide" aria-label="식재료 선택 안내"><div className="home-guide-heading"><span>이용 안내</span><h2>검색부터 발주 검토까지,<br/>한 흐름으로.</h2><p>좋은 한 끼를 준비하는<br/>담당자의 선택을 돕습니다.</p></div><div className="home-guide-steps">{[{number:'01',icon:Search,title:'필요한 식재료 찾기',text:'상품명과 원재료로 검색하고, 카테고리·포장 중량으로 좁혀보세요.'},{number:'02',icon:GitCompareArrows,title:'같은 기준으로 비교하기',text:'원본 규격과 영양정보 제공 여부를 나란히 확인하세요.'},{number:'03',icon:ClipboardList,title:'우리 부대에 맞게 계산하기',text:'급식 인원·배식량·포장 단가를 입력해 발주 수량과 금액을 확인하세요.'}].map(s => <div className="home-guide-step" key={s.number}><div><s.icon size={21} strokeWidth={1.5}/><span>{s.number}</span></div><h3>{s.title}</h3><p>{s.text}</p></div>)}</div></section>
+  </div>
+}
