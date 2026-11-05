@@ -53,7 +53,7 @@ test('Clarification can ask only missing fields; hallucinated repeated questions
 })
 
 test('HTTP chat always uses Claude when configured, keeps state through advice and handles a short budget reply',async(t)=>{
- process.env.ANTHROPIC_API_KEY='test-only';process.env.DATA_GO_KR_SERVICE_KEY='';process.env.G2B_SERVICE_KEY='';process.env.MFDS_SERVICE_KEY=''
+ process.env.ANTHROPIC_API_KEY='test-only';process.env.MILIMARKET_CLAUDE_API_KEY='';process.env.DATA_GO_KR_SERVICE_KEY='';process.env.G2B_SERVICE_KEY='';process.env.MFDS_SERVICE_KEY=''
  process.env.MILIMARKET_DATA_DIR=await mkdtemp(path.join(os.tmpdir(),'mm-chat-test-'))
  const originalFetch=globalThis.fetch,calls=[]
  const turns=[

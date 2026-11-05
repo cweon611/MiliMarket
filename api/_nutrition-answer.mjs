@@ -1,10 +1,13 @@
 import {publicProduct,gramPrice} from '../shared/catalog.mjs'
 import {NUTRIENTS} from './_public-data.mjs'
 import {candidates,lookupBatch} from './_retrieval.mjs'
-import {verifiedRecord,evaluateNutrition,nutrientKeys,NUTRIENT_META} from '../shared/nutrition.mjs'
+import {verifiedRecord,evaluateNutrition,convertNutrition,nutrientKeys,NUTRIENT_META} from '../shared/nutrition.mjs'
+import {dailyShare,DEFAULT_ENERGY} from '../shared/nutrition-standards.mjs'
 import {validateQuery} from './_query.mjs'
 const valueText=n=>n?.value!=null?n.value.toLocaleString('ko-KR')+' '+n.unit:n?.raw?n.raw+' '+n.unit+' (원문)':'미제공'
 const fmt=n=>n.toLocaleString('ko-KR',{maximumFractionDigits:3})
+// 확정 영양값이 1인 하루 통합 기준(3,000kcal)에서 차지하는 비율. 하한이 있으면 하한 대비, 나트륨·당류는 상한 대비.
+const shareText=(values,keys)=>{const rows=dailyShare(values).filter(r=>!keys||keys.includes(r.nutrient));return rows.length?'1일 기준('+DEFAULT_ENERGY.toLocaleString('ko-KR')+'kcal) 대비 '+rows.map(r=>NUTRIENT_META[r.nutrient][0]+' '+fmt(r.percent)+'%'+(r.kind==='limit'?'(상한)':'')).join(' / '):''}
 export async function answerNutrition(products,input,service){
  const q=validateQuery(input)
  if(!q.productIds.length&&!q.query&&!q.queries.length)return {products:[],nutritionEvidence:[],count:0,text:'어떤 상품의 영양 정보가 필요한가요? 상품명 또는 물품식별번호를 알려 주세요.'}
@@ -31,9 +34,9 @@ export async function answerNutrition(products,input,service){
   const scope='검색 '+coverage.matched+'건 중 '+coverage.queried+'건 조회 · 보고번호 일치 '+coverage.confirmed+'건. '+(coverage.partial?'조회한 범위에서만 비교했습니다. 전체 상품 순위가 아닙니다.':'')
   const requestedKeys=[q.nutrient,...q.conditions.map(c=>c.nutrient),...(nutrientKeys.includes(q.sort)?[q.sort]:[])].filter(Boolean)
   const keys=requestedKeys.length?[...new Set(requestedKeys)]:nutrientKeys
-  const lines=results.map((r,i)=>(i+1)+'. '+r.product.name+'\n'+keys.map(k=>NUTRIENT_META[k][0]+' '+(r.values[k]==null?'미제공':fmt(r.values[k])+' '+NUTRIENT_META[k][1])).join(' / ')+'\n'+r.formula+' · 원자료 '+r.sourceCode)
+  const lines=results.map((r,i)=>(i+1)+'. '+r.product.name+'\n'+keys.map(k=>NUTRIENT_META[k][0]+' '+(r.values[k]==null?'미제공':fmt(r.values[k])+' '+NUTRIENT_META[k][1])).join(' / ')+(shareText(r.values,keys)?'\n'+shareText(r.values,keys):'')+'\n'+r.formula+' · 원자료 '+r.sourceCode)
   const basis=q.basis.unit==='serving'?'1인분 '+q.serving.amount+q.serving.unit:q.basis.amount+q.basis.unit
-  return {...base,products:results.map(r=>publicProduct(r.product)),nutritionEvidence:lookups.filter(e=>results.some(r=>r.product.id===e.productId)).slice(0,20),comparison:results.map(({product,...r})=>({id:product.id,name:product.name,...r})),excluded,verified:true,blocked:false,text:scope+'\n'+basis+' 기준 '+(results.length?results.length+'개 결과입니다.':'조건을 만족하는 확정 상품이 없습니다. 기준·검색어를 조정하거나 영양 데이터를 더 가져와 주세요.')+'\n'+lines.join('\n\n')+(excluded.length?'\n제외 '+excluded.length+'건: '+[...new Set(excluded.map(e=>e.reason))].join(', '):'')+'\n자료 출처: 식약처 식품영양성분DB. 이름만 유사한 참고 자료는 계산하지 않았습니다.'}
+  return {...base,products:results.map(r=>publicProduct(r.product)),nutritionEvidence:lookups.filter(e=>results.some(r=>r.product.id===e.productId)).slice(0,20),comparison:results.map(({product,...r})=>({id:product.id,name:product.name,...r})),excluded,verified:true,blocked:false,text:scope+'\n'+basis+' 기준 '+(results.length?results.length+'개 결과입니다.':'조건을 만족하는 확정 상품이 없습니다. 기준·검색어를 조정하거나 영양 데이터를 더 가져와 주세요.')+'\n'+lines.join('\n\n')+(excluded.length?'\n제외 '+excluded.length+'건: '+[...new Set(excluded.map(e=>e.reason))].join(', '):'')+'\n자료 출처: 식약처 식품영양성분DB. 1일 기준은 국방부·식약처·보건복지부 통합 기준이며, 이름만 유사한 참고 자료는 계산하지 않았습니다.'}
  }
  const confirmed=lookups.filter(x=>verifiedRecord(x)).length
  return {...base,text:(confirmed?'보고번호가 일치한 공식 영양 자료 '+confirmed+'건을 확인했습니다.':'확정할 수 있는 상품별 영양 자료가 없어 참고 자료와 조회 상태를 안내합니다.')+'\n'+describe(lookups,q.nutrient)+(coverage.partial?'\n검색 '+coverage.matched+'건 중 '+coverage.queried+'건만 조회했습니다.':'')+'\n자료 출처: 식약처 식품영양성분DB. 1일 영양 충족은 식단 계획에 지정한 기준으로 별도 검증합니다.'}
@@ -47,7 +50,8 @@ function describe(lookups,nutrient){
    const keys=nutrient?[nutrient]:['calories','protein','fat','carbs','sodium']
    return r.name+' · '+r.basis.text+' 기준\n'+keys.filter(k=>NUTRIENTS[k]).map(k=>NUTRIENTS[k][1]+' '+valueText(r.nutrients[k])).join(' / ')+'\n자료 수정 '+(r.updatedAt||'미제공')+' · 조회 '+r.fetchedAt.slice(0,10)
   }).join('\n')
-  return heading+' ['+(x.match==='report_number'?'보고번호 일치':x.match==='ambiguous'?'복수 자료 · 확인 필요':'참고 자료 · 상품 일치 미확인')+']\n'+records
+  const verified=verifiedRecord(x),share=verified&&convertNutrition(verified,{amount:verified.basis.amount,unit:verified.basis.unit}),shareLine=share?.ok?shareText(share.values,nutrient?[nutrient]:null):''
+  return heading+' ['+(x.match==='report_number'?'보고번호 일치':x.match==='ambiguous'?'복수 자료 · 확인 필요':'참고 자료 · 상품 일치 미확인')+']\n'+records+(shareLine?'\n'+shareLine+' ('+verified.basis.text+' 기준)':'')
  }).join('\n\n')
 }
 

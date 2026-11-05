@@ -64,6 +64,24 @@ export function standardTargetSource(targets,energy=DEFAULT_ENERGY){
   const changed=compareToStandard(targets,energy).filter(r=>r.state!=='standard').length
   return `통합 기준 ${STANDARD_VERSION} · ${energy.toLocaleString('ko-KR')}kcal (국방부·식약처·보건복지부)${changed?` · ${changed}개 사용자 수정`:''}`
 }
+// 영양값이 1일 기준에서 차지하는 비율. 하한이 있는 항목은 하한 대비(goal), 상한뿐인 항목은 상한 대비(limit)다.
+// 값이 없는 영양소는 0으로 보지 않고 건너뛴다.
+export function dailyShare(values={},energy=DEFAULT_ENERGY){
+  return standardTargets(energy).flatMap(t=>{
+    const value=values?.[t.nutrient];if(!Number.isFinite(value))return []
+    const goal=t.min!=null,target=goal?t.min:t.max;if(!(target>0))return []
+    return [{nutrient:t.nutrient,value,kind:goal?'goal':'limit',target,percent:Math.round(value/target*1000)/10}]
+  })
+}
+const NUTRIENT_LABEL={calories:['열량','kcal'],protein:['단백질','g'],carbs:['탄수화물','g'],fat:['지방','g'],sugars:['당류','g'],sodium:['나트륨','mg'],calcium:['칼슘','mg']}
+const n=v=>v.toLocaleString('ko-KR')
+// 목표 한 줄 요약. 예: "단백질 128–150g"
+export function describeTarget(t){
+  const [label,unit]=NUTRIENT_LABEL[t.nutrient]||[t.nutrient,'']
+  const range=t.min!=null&&t.max!=null?`${n(t.min)}–${n(t.max)}${unit}`:t.min!=null?`${n(t.min)}${unit} 이상`:`${n(t.max)}${unit} 이하`
+  return `${label} ${range}`
+}
+export function describeStandard(energy=DEFAULT_ENERGY){return standardTargets(energy).map(describeTarget).join(' / ')}
 // 열량을 바꿀 때 사용자가 직접 고친 영양소는 유지하고, 기준을 따르던 영양소만 다시 계산한다.
 export function rescaleTargets(targets,fromEnergy,toEnergy){
   const next=new Map(standardTargets(toEnergy).map(t=>[t.nutrient,t]))

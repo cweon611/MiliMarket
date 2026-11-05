@@ -1,6 +1,7 @@
 import {useEffect,useRef,useState,type ReactNode} from 'react'
 import type {Product} from './data'
 import {NUTRIENT_META,convertNutrition,evaluateNutrition} from '../shared/nutrition.mjs'
+import {DEFAULT_ENERGY,dailyShare,describeTarget,standardTargets} from '../shared/nutrition-standards.mjs'
 import './nutrition-tools.css'
 export interface NutrientCondition {nutrient:string;min:number|null;max:number|null;minExclusive?:boolean;maxExclusive?:boolean}
 export interface NutrientFilterState {basis:string;conditions:NutrientCondition[];sort:string;direction:string;verifiedOnly:boolean}
@@ -34,4 +35,17 @@ export function VerifiedNutrition({product:p}:{product:Product}){
 export function VerifiedComparison({products}:{products:Product[]}){
  const [unit,setUnit]=useState('g')
  return <section className="verified-comparison"><h2>같은 기준으로 영양 비교</h2><select aria-label="선택 상품 영양 비교 기준" value={unit} onChange={e=>setUnit(e.target.value)}><option value="g">100g당</option><option value="mL">100mL당</option></select><div className="verified-compare-grid">{products.map(p=>{const r=convertNutrition(p.verifiedNutrition,{amount:100,unit});return <article key={p.id}><h3>{p.name}</h3>{!p.verifiedNutrition?<p>확정 영양 자료 없음</p>:!r.ok?<p>{r.reason}</p>:<><dl>{Object.entries(NUTRIENT_META).map(([k,[label,u]])=><div key={k}><dt>{label}</dt><dd>{r.values?.[k]==null?'미제공':r.values![k].toLocaleString('ko-KR',{maximumFractionDigits:3})+' '+u}</dd></div>)}</dl><small>{r.formula} · 식약처 {r.sourceCode}</small></>}</article>})}</div></section>
+}
+// 확정 영양 자료가 있는 상품만 1인 하루 통합 기준(3,000kcal) 대비 비율을 보여준다. 기준량이 없거나 g/mL가 다르면 환산하지 않는다.
+export function DailyShare({product:p,portion}:{product:Product;portion?:number|null}){
+ const record=p.verifiedNutrition;if(!record)return null
+ const unit=record.basis?.unit as string,base=convertNutrition(record,{amount:100,unit}),serving=portion&&unit==='g'?convertNutrition(record,{amount:portion,unit:'g'}):null
+ if(!base.ok)return null
+ const shares=dailyShare(base.values),perServing=serving?.ok?new Map(dailyShare(serving.values).map(r=>[r.nutrient,r])):null
+ if(!shares.length)return null
+ return <section className="daily-share"><strong>1일 영양 기준 대비 · {DEFAULT_ENERGY.toLocaleString('ko-KR')}kcal</strong><table><thead><tr><th>영양소</th><th>1일 기준</th><th>100{unit}당</th>{perServing&&<th>{portion}g/인</th>}</tr></thead><tbody>{shares.map(r=>{const [label,u]=NUTRIENT_META[r.nutrient as keyof typeof NUTRIENT_META],s=perServing?.get(r.nutrient);return <tr key={r.nutrient}><th scope="row">{label}</th><td>{r.target.toLocaleString('ko-KR')}{u} {r.kind==='limit'?'이하':'이상'}</td><td>{r.percent.toLocaleString('ko-KR')}%</td>{perServing&&<td>{s?s.percent.toLocaleString('ko-KR')+'%':'미제공'}</td>}</tr>})}</tbody></table><small>{base.formula} · 나트륨·당류는 상한 대비, 나머지는 하한 대비입니다. 미제공 영양소는 0으로 계산하지 않았습니다.</small></section>
+}
+export function StandardSummary(){
+ const rows=standardTargets()
+ return <section className="standard-summary" aria-label="1인 하루 영양 기준"><div><span>1인 하루 영양 기준</span><h2>장병 {DEFAULT_ENERGY.toLocaleString('ko-KR')}kcal 통합 기준</h2><p>국방부·식약처·보건복지부 기준을 영양소별 출처와 함께 통합했습니다. 상품 상세에서 이 기준 대비 비율을 확인하세요.</p></div><ul>{rows.map(t=><li key={t.nutrient}>{describeTarget(t)}</li>)}</ul></section>
 }

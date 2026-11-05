@@ -29,3 +29,14 @@ test('User edits are tracked and kept when energy changes',()=>{
 test('DB seed matches the shared standard module',async()=>{
  assert.equal(await readFile(new URL('../db/seed_nutrition_standards.sql',import.meta.url),'utf8'),standardsSql())
 })
+
+import {dailyShare,describeStandard} from '../shared/nutrition-standards.mjs'
+test('dailyShare: goal nutrients use the lower bound, limits use the upper bound, missing values are skipped',()=>{
+  const rows=dailyShare({protein:12.8,sodium:200,sugars:null,calories:300})
+  const by=Object.fromEntries(rows.map(r=>[r.nutrient,r]))
+  assert.equal(by.protein.percent,10);assert.equal(by.protein.kind,'goal')
+  assert.equal(by.sodium.percent,10);assert.equal(by.sodium.kind,'limit')
+  assert.equal(by.calories.percent,10)
+  assert.equal(by.sugars,undefined)
+  assert.match(describeStandard(),/단백질 128–150g/)
+})

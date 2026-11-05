@@ -6,7 +6,7 @@ import {randomBytes,scrypt as scryptCallback,timingSafeEqual,randomUUID} from 'n
 import {promisify} from 'node:util'
 import {createLocalStore,createBlobStore} from './account-store.mjs'
 import {mergeCatalog} from './shared/catalog.mjs'
-import {interpretDemo,interpretWithClaude,explainVerified,answerAdvice,clarifyMeal,validateQuery} from './api/_claude.mjs'
+import {interpretDemo,interpretWithClaude,explainVerified,answerAdvice,clarifyMeal,validateQuery,claudeKey} from './api/_claude.mjs'
 import {answerCatalog} from './api/_catalog-service.mjs'
 import {planSettings,createPlan} from './api/_planner.mjs'
 import {recommend,continueRecommendation} from './api/_recommendation.mjs'
@@ -93,7 +93,7 @@ export async function handler(req,res){
         catch{return json(res,502,{error:'나라장터 이미지 조회가 지연되고 있습니다. 다시 시도해 주세요.'})}
       }
       const user=await userOf(req),method=req.method
-      if(url.pathname==='/api/status'&&method==='GET')return json(res,200,{configured:!!process.env.ANTHROPIC_API_KEY?.trim(),model:process.env.ANTHROPIC_MODEL?.trim()||'claude-sonnet-5-5',catalogCount:products.length,user:safeUser(user),dataProviders:publicData.status()})
+      if(url.pathname==='/api/status'&&method==='GET')return json(res,200,{configured:!!claudeKey(),model:process.env.ANTHROPIC_MODEL?.trim()||'claude-sonnet-5-5',catalogCount:products.length,user:safeUser(user),dataProviders:publicData.status()})
       if(['/api/register','/api/login'].includes(url.pathname)&&method==='POST'){
         if(!limit(req,'auth',10))return json(res,429,{error:'로그인 시도가 많습니다. 1분 후 다시 시도해 주세요.'})
         const body=await readBody(req),email=String(body.email||'').trim().toLowerCase(),password=String(body.password||'')
@@ -199,4 +199,4 @@ export async function handler(req,res){
   }catch(e){if(e.code==='ENOENT'){res.writeHead(404);res.end('Not found')}else await json(res,e.statusCode||400,{error:e.name==='TimeoutError'?'Claude 응답 시간이 초과되었습니다. 다시 시도해 주세요.':e instanceof SyntaxError?'입력 형식을 확인해 주세요.':String(e.message).slice(0,240)})}
 }
 export const server=http.createServer(handler)
-if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url))server.listen(Number(process.env.PORT)||5184,'127.0.0.1',()=>console.log(`MiliMarket demo: http://127.0.0.1:${Number(process.env.PORT)||5184} (Claude ${process.env.ANTHROPIC_API_KEY?.trim()?'configured':'key not set'})`))
+if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url))server.listen(Number(process.env.PORT)||5184,'127.0.0.1',()=>console.log(`MiliMarket demo: http://127.0.0.1:${Number(process.env.PORT)||5184} (Claude ${claudeKey()?'configured':'key not set'})`))
