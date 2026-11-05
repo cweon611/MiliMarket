@@ -1,6 +1,8 @@
 export interface Product {
   verifiedNutrition?:import('./PublicData').NutritionRecord|null
   officialNutritionState?:string
+  // 상품 상세 이미지에서 읽은 영양 정보(검증 전). 비교·식단 계산에는 쓰지 않고 상세 화면에만 표기한다.
+  imageNutrition?:{basis:{text:string;amount:number;unit:string};grade:'full'|'partial';image:string|null;extractedAt:string;model:string;nutrients:Record<string,{label:string;unit:string;value:number|null}>}|null
   market?: MarketInfo
   id: number; name: string; category: string; subcategory: string
   foodType: string; ingredients: string; reportNumber: string

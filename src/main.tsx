@@ -20,7 +20,7 @@ import { QuoteFields } from './QuoteFields'
 import { PREFERENCES_KEY, decodePreferences, emptyPreferences, restoreQuote, saveQuote } from './order-preferences'
 import { saleUnit, servingLabel } from './data'
 import {CATEGORY_NAMES, mergeCatalog, createCatalogSearch, gramPrice} from '../shared/catalog.mjs'
-import {officialEntries,isFresh} from '../shared/official-nutrition.mjs'
+import {officialEntries,imageEntries,isFresh} from '../shared/official-nutrition.mjs'
 import {verifiedRecord} from '../shared/nutrition.mjs'
 import {AssistantWorkspace, HomeAiEntry, LoginDialog, MealHistory, api, initialPlanSettings, type Status, type Plan, type PlanSettings} from './AssistantWorkspace'
 import './revisions.css'
@@ -77,8 +77,9 @@ function App() {
     setLoadState('loading')
     // 식약처 일괄 매칭 확정분은 없어도 카탈로그는 열리도록 따로 받는다.
     const official=fetch('/data/official-nutrition.json',{signal:controller.signal}).then(r=>r.ok?r.json():null).catch(()=>null)
-    Promise.all([...['/data/products.json', '/data/market-enrichment.json'].map(url=>fetch(url,{signal:controller.signal}).then(response=>{if(!response.ok)throw new Error('Catalog unavailable');return response.json()})),official])
-      .then(data => { const [rows, market, bulk] = data as [Product[], Record<string, MarketInfo>, unknown]; if (!Array.isArray(rows) || !rows.length) throw new Error('Empty catalog'); const entries=officialEntries(bulk); setProducts(mergeCatalog(rows,market).map((p:Product)=>{const n=entries[p.id]?.nutrition;return n&&isFresh(n)?{...p,verifiedNutrition:verifiedRecord(n),officialNutritionState:'verified'}:p})); setLoadState('ready') })
+    const imageNutrition=fetch('/data/image-nutrition.json',{signal:controller.signal}).then(r=>r.ok?r.json():null).catch(()=>null)
+    Promise.all([...['/data/products.json', '/data/market-enrichment.json'].map(url=>fetch(url,{signal:controller.signal}).then(response=>{if(!response.ok)throw new Error('Catalog unavailable');return response.json()})),official,imageNutrition])
+      .then(data => { const [rows, market, bulk, imageFile] = data as [Product[], Record<string, MarketInfo>, unknown, unknown]; if (!Array.isArray(rows) || !rows.length) throw new Error('Empty catalog'); const entries=officialEntries(bulk),images=imageEntries(imageFile); setProducts(mergeCatalog(rows,market).map((p:Product)=>{const n=entries[p.id]?.nutrition;const base=n&&isFresh(n)?{...p,verifiedNutrition:verifiedRecord(n),officialNutritionState:'verified'}:p;return !base.verifiedNutrition&&images[p.id]?{...base,imageNutrition:images[p.id]}:base})); setLoadState('ready') })
       .catch(() => { if (!controller.signal.aborted) setLoadState('error') })
     return () => controller.abort()
   }, [loadAttempt])

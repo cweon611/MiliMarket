@@ -26,3 +26,10 @@ export function mergeOfficialEntries(bulk,live,now=Date.now()){
   }
   return out
 }
+// 상품 상세 이미지에서 모델이 읽은 영양 정보(public/data/image-nutrition.json). 검증 전 자료이므로 확정 자료와 섞지 않는다.
+export function imageEntries(file){
+  if(!file?.records)return {}
+  return Object.fromEntries(Object.entries(file.records).map(([id,x])=>[id,{
+    basis:x.b,grade:x.g,image:x.i,extractedAt:x.t,model:file.model,
+    nutrients:Object.fromEntries(nutrientKeys.map((k,i)=>[k,{label:NUTRIENT_META[k][0],unit:NUTRIENT_META[k][1],value:x.v[i]}]))}]))
+}

@@ -10,3 +10,7 @@
 .standard-summary h2{margin:4px 0 8px}
 .standard-summary ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
 @media(max-width:720px){.standard-summary{grid-template-columns:1fr}}
+.image-nutrition{border:1px dashed #d9a441;background:rgba(217,164,65,.06)}
+.image-nutrition strong{color:#8a5a00}
+.image-nutrition{border:1px dashed #d9a441;background:rgba(217,164,65,.06)}
+.image-nutrition strong{color:#8a5a00}
