@@ -1,3 +1,4 @@
+import { Flame, Beef, Wheat, Droplets, Candy, Waves, Bone, Info, type LucideIcon } from 'lucide-react'
 import {useEffect,useRef,useState,type ReactNode} from 'react'
 import type {Product} from './data'
 import {NUTRIENT_META,convertNutrition,evaluateNutrition} from '../shared/nutrition.mjs'
@@ -49,7 +50,21 @@ export function ImageNutrition({product:p,portion}:{product:Product;portion?:num
  const r=p.imageNutrition;if(!r||p.verifiedNutrition)return null
  return <section className="verified-values image-nutrition"><strong>이미지에서 읽은 영양정보 · {r.basis.text} 기준 · 검증 전</strong><dl>{Object.entries(r.nutrients).map(([k,n])=><div key={k}><dt>{n.label}</dt><dd>{n.value==null?'미확인':n.value.toLocaleString('ko-KR')+' '+n.unit}</dd></div>)}</dl><small>상품 상세 이미지의 영양성분표를 AI가 읽은 값입니다. 오인식 가능성이 있어 식약처 확정 자료가 아니며 비교·식단 계산에는 쓰지 않습니다.{r.grade==='partial'?' 일부 항목만 읽혔습니다.':''} {r.image&&<a href={r.image} target="_blank" rel="noreferrer">원본 이미지 ↗</a>}</small><DailyShare product={p} portion={portion} record={r} unverified/></section>
 }
+const standardIcons:Record<string,LucideIcon>={protein:Beef,carbs:Wheat,fat:Droplets,sugars:Candy,sodium:Waves,calcium:Bone}
 export function StandardSummary(){
- const rows=standardTargets()
- return <section className="standard-summary" aria-label="1인 하루 영양 기준"><div><span>1인 하루 영양 기준</span><h2>장병 {DEFAULT_ENERGY.toLocaleString('ko-KR')}kcal 통합 기준</h2><p>국방부·식약처·보건복지부 기준을 영양소별 출처와 함께 통합했습니다. 상품 상세에서 이 기준 대비 비율을 확인하세요.</p></div><ul>{rows.map(t=><li key={t.nutrient}>{describeTarget(t)}</li>)}</ul></section>
+ const rows=standardTargets(),energy=rows.find(t=>t.nutrient==='calories')!
+ const format=(value:number)=>value.toLocaleString('ko-KR')
+ return <section className="standard-summary" aria-label="1인 하루 영양 기준">
+  <header className="standard-summary-heading"><div><span className="standard-eyebrow">1인 하루 영양 기준</span><h2>균형 잡힌 하루, 한눈에.</h2></div><p>식재료 선택부터 식단 구성까지<br/>하루 영양 기준을 확인하세요.</p></header>
+  <div className="standard-summary-body">
+   <div className="standard-energy"><div className="standard-energy-top"><span>하루 열량 기준</span><Flame size={24} strokeWidth={1.6} aria-hidden="true"/></div><div className="standard-energy-value"><strong>{format(energy.min!)}</strong><span>kcal 이상</span></div><p>장병 1인 · 하루 기준</p><div className="standard-energy-caption">든든한 한 끼의 시작,<br/>하루의 균형을 생각합니다.</div></div>
+   <ul className="standard-nutrient-grid">{rows.filter(t=>t.nutrient!=='calories').map(t=>{
+    const [label,unit]=NUTRIENT_META[t.nutrient as keyof typeof NUTRIENT_META],Icon=standardIcons[t.nutrient]
+    const range=t.min!=null&&t.max!=null
+    const value=range?`${format(t.min!)}–${format(t.max!)}`:format((t.min??t.max)!)
+    return <li key={t.nutrient} className={t.min==null?'standard-nutrient is-limit':'standard-nutrient'} aria-label={describeTarget(t)}><div className="standard-nutrient-top"><span className="standard-nutrient-icon"><Icon size={18} strokeWidth={1.7} aria-hidden="true"/></span><span>{label}</span><small>{range?'섭취 범위':t.min==null?'상한 기준':'하한 기준'}</small></div><div className="standard-nutrient-value"><strong>{value}</strong><span>{unit}{range?'':t.min==null?' 이하':' 이상'}</span></div></li>
+   })}</ul>
+  </div>
+  <p className="standard-summary-note"><Info size={16} aria-hidden="true"/><span>국방부·식약처·보건복지부 통합 기준<span className="standard-note-divider" aria-hidden="true"> · </span><span className="standard-note-help">상품 상세에서 기준 대비 비율을 확인할 수 있어요.</span></span></p>
+ </section>
 }

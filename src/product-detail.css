@@ -74,3 +74,100 @@
 @media(max-width:1050px){.detail-columns{grid-template-columns:repeat(2,minmax(0,1fr))}.detail-column:last-child{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;align-items:start}}
 @media(max-width:680px){.detail-columns{grid-template-columns:1fr;gap:15px}.detail-column:last-child{grid-column:auto;display:flex}.detail-toolbar{align-items:flex-start;gap:8px}.detail-toolbar>div{gap:5px}.detail-toolbar button{font-size:13px}.detail-toolbar .primary,.detail-outline{padding:9px}.detail-toolbar svg{width:13px}.detail-summary>.food-art{height:200px}.detail-summary h1{font-size:21px}}
 .alternative-nutrition{font-size:14px;display:flex;flex-wrap:wrap;gap:4px 10px;margin:6px 0}.alternative-nutrition.muted,.alternative-comment.muted{color:#7a837c}.alternative-nutrition .better{color:#2f6b2c;font-weight:700}.alternative-nutrition .worse{color:#a2532a;font-weight:700}.alternative-comment-button{margin-top:8px;width:100%;padding:8px;border:1px dashed #b9c8b1;background:#f4f8f0;border-radius:6px;font-weight:700;color:#2f4a2c}.alternative-comment{margin-top:8px;padding:10px;background:#eef4e9;border-radius:8px;font-size:14px}.alternative-comment p{margin:4px 0}.alternative-comment small{color:#607157}
+/* Product overview and tabbed details */
+.detail-quick-facts{display:flex;flex-wrap:wrap;gap:6px 18px;margin:14px 0 0;font-size:13px}
+.detail-quick-facts>div{padding:0;border:0;gap:8px;min-width:0}
+.detail-quick-facts dd{overflow-wrap:anywhere}
+.detail-information{margin-top:0}
+.detail-tab-list{display:flex;gap:6px;border-bottom:1px solid #dfe7d8;margin-bottom:18px}
+.detail-tab-list>button{flex:1;max-width:210px;min-height:48px;padding:12px 16px;border-bottom:3px solid transparent;color:#71806a;font-size:15px;font-weight:600}
+.detail-tab-list>button[aria-selected=true]{color:#31573d;border-bottom-color:#31573d;background:#f0f5ec}
+.detail-tab-list>button:hover{background:#f0f5ec}
+.detail-tab-panel{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
+.detail-tab-panel[hidden]{display:none}
+.detail-tab-panel>.detail-disclosure{grid-column:1/-1}
+.detail-tab-panel .detail-box dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:24px}
+.detail-tab-panel .detail-box dl>div{align-items:baseline;gap:12px;min-width:0}
+.detail-tab-panel dt{flex-shrink:1}
+.detail-tab-panel dd{min-width:0;overflow-wrap:anywhere}
+.detail-tab-panel>section:only-of-type:first-child{grid-column:1/-1}
+.detail-disclosure>summary{cursor:pointer;font-size:14px;font-weight:600;color:#496d38;line-height:1.6}
+.detail-disclosure>summary:focus-visible{outline:3px solid #86ab55;outline-offset:4px}
+.detail-disclosure[open]>summary{margin-bottom:16px}
+.detail-disclosure>.section-caption{margin:0 0 12px}
+.detail-tab-panel .ingredients-block p{overflow-wrap:anywhere}
+.detail-tab-panel .nutrition-basis{margin-top:12px}
+.detail-tab-panel .daily-share{overflow-x:auto}
+
+@media(max-width:680px){
+  .detail-tab-list{gap:0}
+  .detail-tab-list>button{padding:12px 6px;font-size:14px;max-width:none}
+  .detail-tab-panel,.detail-tab-panel .detail-box dl{grid-template-columns:minmax(0,1fr)}
+  .detail-toolbar{flex-wrap:wrap}
+  .detail-toolbar>div{flex-wrap:wrap}
+}
+.product-detail-page .detail-calculator .quote-input-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.product-detail-page .detail-calculator .quote-input-grid label{min-width:0}
+.product-detail-page .detail-calculator .quote-input-grid label:last-child:nth-child(3){grid-column:1/-1}
+.product-detail-page .detail-calculator .calculator-note-disclosure{padding:8px 10px;margin:10px 0}
+.calculator-note-disclosure summary{cursor:pointer;font-weight:500}
+.calculator-note-disclosure summary:focus-visible{outline:3px solid #86ab55;outline-offset:3px}
+.calculator-note-disclosure p{margin:8px 0 0}
+
+/* Keep the gallery and information independent of the calculator height. */
+.detail-layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(350px,1fr);grid-template-areas:"main summary" "main price" "main calculator";gap:20px 24px;align-items:start}
+.detail-main-column{grid-area:main;display:flex;flex-direction:column;gap:20px;min-width:0}
+.detail-layout>.detail-summary-body{grid-area:summary;padding:0;min-width:0}
+.detail-layout>.detail-price-section{grid-area:price;min-width:0}
+.detail-layout>.detail-calculator{grid-area:calculator;min-width:0}
+.detail-layout h1{font-size:25px;line-height:1.45;margin:0 0 8px;letter-spacing:-.7px;overflow-wrap:anywhere}
+.detail-layout .detail-tags{flex-wrap:wrap;margin-top:0}
+.detail-layout .gallery-preview,.detail-layout .product-gallery>.food-art{height:300px}
+.product-detail-page .detail-tab-list>button{max-width:none;padding:12px 8px}
+.product-detail-page .detail-tab-panel{grid-template-columns:minmax(0,1fr)}
+.product-detail-page .detail-price-section h2{margin-bottom:10px}
+.product-detail-page .detail-price-box{padding:12px 14px}
+.product-detail-page .detail-price-box>strong{margin:4px 0;font-size:28px}
+.detail-calculator-toggle{display:none}
+.detail-calculator-content{display:block}
+.product-detail-page .detail-maker,.product-detail-page dt,.product-detail-page .section-caption{color:#596750}
+.product-detail-page .detail-price-box>span,.product-detail-page .detail-price-box p{color:#596750}
+.product-detail-page .detail-price-note{color:#6c582c;font-size:14px;line-height:1.65;padding:10px}
+.product-detail-page .nutrition-basis,.product-detail-page .quote-hint,.product-detail-page .gallery-source{color:#52634b;font-size:14px;line-height:1.65}
+.product-detail-page .detail-box dl,.product-detail-page .detail-quick-facts{font-size:14px}
+.product-detail-page .detail-calculator .calculator-inputs label,.product-detail-page .quote-input-grid label,.product-detail-page .calculator-note{color:#52634b;font-size:14px}
+.product-detail-page .detail-calculator .calculator-note-disclosure{background:#f4f7f1}
+.product-detail-page .detail-calculator .calculator-results dl{font-size:14px}
+.product-detail-page .gallery-source{padding:10px 16px 14px}
+.product-detail-page .alternatives-grid>article{display:flex;flex-direction:column;min-width:0}
+.product-detail-page .alternatives-grid>article>strong{min-height:3.3em;line-height:1.65;overflow-wrap:anywhere}
+.product-detail-page .alternatives-grid>article>div:not(.alternative-comment){margin-top:auto;display:flex;gap:8px;padding-top:12px}
+.product-detail-page .alternatives-grid>article>div>button{border:1px solid #bccbb4;border-radius:5px;padding:8px 10px;font-size:14px;text-decoration:none;color:#31573d;min-height:40px}
+.product-detail-page .alternatives-grid p,.product-detail-page .alternatives-grid small,.product-detail-page .alternatives-section>p{color:#52634b}
+@media(max-width:1100px) and (min-width:761px){
+  .detail-layout{grid-template-columns:minmax(0,1fr) minmax(320px,.9fr);gap:18px}
+  .detail-tab-panel .detail-box dl{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:760px){
+  .detail-layout{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"summary" "price" "gallery" "information" "calculator";gap:18px}
+  .detail-main-column{display:contents}
+  .detail-layout>.detail-summary-body{grid-area:summary}
+  .detail-price-section{grid-area:price}
+  .detail-main-column>.detail-summary{grid-area:gallery}
+  .detail-information{grid-area:information}
+  .detail-layout>.detail-calculator{grid-area:calculator}
+  .detail-layout h1{font-size:22px}
+  .detail-layout .gallery-preview,.detail-layout .product-gallery>.food-art{height:220px}
+  .detail-calculator-toggle{display:flex;justify-content:space-between;width:100%;padding:16px 18px;font-size:16px;font-weight:700;text-align:left;color:#31573d}
+  .detail-calculator-content{display:none}
+  .detail-calculator.is-open .detail-calculator-content{display:block}
+  .detail-calculator.is-open .detail-calculator-toggle{border-bottom:1px solid #e2eadb}
+  .detail-tab-panel .detail-box dl{grid-template-columns:minmax(0,1fr)}
+  .product-detail-page .detail-tab-list>button{font-size:14px;white-space:nowrap}
+  .detail-quick-facts{gap:6px 12px}
+}
+@media(min-width:1101px){
+ .product-detail-page p,.product-detail-page h1,.product-detail-page h3,.product-detail-page .quote-hint{word-break:keep-all;overflow-wrap:anywhere;text-wrap:pretty}
+ .product-detail-page .detail-tab-panel dt{white-space:nowrap;flex-shrink:0}
+ .product-detail-page .detail-tab-panel dd{word-break:keep-all;overflow-wrap:anywhere;text-wrap:pretty}
+}
