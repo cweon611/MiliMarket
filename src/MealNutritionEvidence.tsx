@@ -1,6 +1,6 @@
 import {useEffect,useState} from 'react'
 import {NUTRIENT_META} from '../shared/nutrition.mjs'
-import type {Plan} from './AssistantWorkspace'
+import type {Plan} from './assistant-state'
 
 export interface NutritionCheck {nutrient:string;min:number|null;max:number|null;minExclusive?:boolean;maxExclusive?:boolean;value:number|null;status:string;minRatio?:number|null;maxRatio?:number|null;shortfall?:number|null;excess?:number|null}
 export interface NutritionAggregate {

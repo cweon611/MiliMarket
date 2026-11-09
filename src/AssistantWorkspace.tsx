@@ -1,34 +1,18 @@
+import {api,type User,type Status,type PlanSettings,type SourceProduct,type Plan,type Reply,type Message} from './assistant-state'
 import {chatRequestContext} from '../shared/chat-history.mjs'
-import {MealNutritionEvidence, type NutritionAggregate} from './MealNutritionEvidence'
+import {MealNutritionEvidence} from './MealNutritionEvidence'
 import {PriceUnitToggle,usePriceUnit} from './PriceUnit'
-import {NutrientConditions, type NutrientCondition} from './NutritionTools'
-import {DailyStandardTargets} from './NutritionStandards'
 import {useEffect,useRef,useState} from 'react'
 import {ArrowRight, BookOpen, CalendarDays, Check, ChevronRight, ClipboardList, LoaderCircle, LogIn, MessageSquare, Package, Send, ShieldCheck, Sparkles, X} from 'lucide-react'
-import {formatValue, type Product} from './data'
+import {formatValue} from './data'
 import './assistant.css'
-import {NutritionSources, type NutritionEvidence} from './PublicData'
+import {NutritionSources} from './PublicData'
 
-export interface User {id:string;name:string;email:string}
-export interface Status {configured:boolean;model:string;catalogCount:number;user:User|null;dataProviders?:Record<string,{configured:boolean;source:{name:string;url:string}}> }
-export interface PlanSettings {start:string;days:number;people:number;mealBudgets:number[];exclusions:string[];dessert:boolean;cuisine:string;seed:number;meals?:string[];composition?:Record<string,number>;preferenceLabels?:string[];nutritionScope?:string;mealTargets?:NutrientCondition[];dailyTargets?:NutrientCondition[];targetSource?:string;standardEnergy?:number;portions?:Record<string,number>;portionSource?:string}
-interface SourceProduct {verifiedNutrition?:import('./PublicData').NutritionRecord|null;id:number;name:string;imageUrl:string|null;unitPrice:number|null;gramPrice:number|null;packGrams:number|null;unit:string;sourceUrl:string|null;collectedAt:string|null;nutritionBasis:string;protein:number|null;sodium:number|null;calories:number|null;ingredients:string}
-interface PlanItem extends SourceProduct {role:string;reasons?:string[];missing?:boolean;grams:number|null;unitsPerPerson:number|null;portionCost:number;repeat:number;family:string}
-export interface Purchase extends PlanItem {requiredGrams:number;requiredUnits:number;packs:number;total:number}
-export interface Plan {nutritionVerified?:boolean;nutrition?:{targetSource:string;targets:NutrientCondition[];mealTargets?:NutrientCondition[];days:(NutritionAggregate&{date:string;meals:(NutritionAggregate&{name:string})[]})[]};settings:PlanSettings;days:{date:string;meals:{name:string;budget:number;cost:number;items:PlanItem[]}[]}[];purchase:Purchase[];total:number;budget:number;missing:number;warnings:string[];basis:string;createdAt:string}
-interface Reply {contextReset?:boolean;chatContext?:{meal:Record<string,unknown>|null;recommendation:Record<string,unknown>|null};mealRequestContext?:Record<string,unknown>;needsMealDetails?:boolean;needsPreference?:boolean;recommendationContext?:Record<string,unknown>;answerKind?:string;generalNotice?:string;followUps?:string[];recommendations?:{id:number;reasons:string[]}[];plan?:Plan;highlights?:string[];explanationNotice?:string;needsBasis?:boolean;nutritionEvidence?:NutritionEvidence[];mode:string;text:string;products:SourceProduct[];blocked?:boolean;count?:number;planSettings?:Partial<PlanSettings>}
-interface Message {role:'user'|'assistant';text:string;reply?:Reply}
-export const initialPlanSettings:PlanSettings={start:new Date().toLocaleDateString('sv-SE',{timeZone:'Asia/Seoul'}),days:7,people:120,mealBudgets:[4000,5000,4000],exclusions:[],dessert:true,cuisine:'한식',seed:0}
-export async function api<T>(url:string,body?:unknown):Promise<T>{const response=await fetch(url,{credentials:'same-origin',...(body!==undefined?{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}:{})});const data=await response.json();if(!response.ok)throw new Error(data.error||'요청을 처리하지 못했습니다.');return data}
 export function LoginDialog({onClose,onUser}:{onClose:()=>void;onUser:(u:User)=>void}) {
   const [register,setRegister]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('')
   const dialog=useRef<HTMLDialogElement>(null)
   useEffect(()=>{dialog.current?.showModal()},[])
   return <dialog ref={dialog} className="account-dialog" onCancel={onClose}><button className="dialog-close" aria-label="로그인 닫기" onClick={onClose}><X size={20}/></button><span className="ai-eyebrow">MY MILIMARKET</span><h2>{register?'데모 계정 만들기':'내 식단을 이어서 관리하세요'}</h2><p>로그인하면 데모 계정에 식단 기록을 저장할 수 있습니다.</p><form onSubmit={async e=>{e.preventDefault();setBusy(true);setError('');const data=Object.fromEntries(new FormData(e.currentTarget));try{const result=await api<{user:User}>(register?'/api/register':'/api/login',data);onUser(result.user);onClose()}catch(e){setError((e as Error).message)}finally{setBusy(false)}}}>{register&&<label>이름<input name="name" required maxLength={30} autoComplete="name"/></label>}<label>이메일<input name="email" type="email" required autoComplete="username"/></label><label>비밀번호<input name="password" type="password" required minLength={8} maxLength={128} autoComplete={register?'new-password':'current-password'} placeholder="8자 이상"/></label>{error&&<p role="alert" className="ai-error">{error}</p>}<button className="primary" disabled={busy}>{busy?'처리 중…':register?'계정 만들기':'로그인'}</button></form><button className="text-link" onClick={()=>{setRegister(!register);setError('')}}>{register?'이미 계정이 있어요':'처음이신가요? 데모 계정 만들기'}</button><small>시연용 계정입니다. 실제 기관 계정과 연결되지 않습니다.</small></dialog>
-}
-export function HomeAiEntry({onAsk}:{onAsk:(text:string)=>void}){
-  const [text,setText]=useState('')
-  return <section className="home-ai-entry"><div><span className="ai-label"><Sparkles size={15}/> AI - Mili</span><h2>찾는 조건을 문장으로 알려주세요.</h2><p>상품 탐색부터 일주일 식단 초안까지, 한곳에서 이어집니다.</p></div><div><form onSubmit={e=>{e.preventDefault();onAsk(text.trim()||'120명 일주일 식단을 만들어줘')}}><input aria-label="Mili에게 질문" placeholder="예: 120명 일주일 식단, 돼지고기는 빼줘" value={text} maxLength={2000} onChange={e=>setText(e.target.value)}/><button aria-label="Mili 질문 보내기"><ArrowRight size={20}/></button></form><div className="ai-home-links"><button onClick={()=>onAsk('g당 가격이 저렴한 두부 찾아줘')}>g당 가격 비교</button><button onClick={()=>onAsk('바나나우유 영양정보 알려줘')}>영양정보 확인</button><button onClick={()=>onAsk('120명 일주일 식단을 만들어줘')}>AI 식단 짜기 <ChevronRight size={12}/></button></div></div></section>
 }
 function SourceCard({p,onDetail}:{p:SourceProduct;onDetail:(id:number)=>void}){const {unit,price}=usePriceUnit();return <button className="ai-source-card" onClick={()=>onDetail(p.id)}><div className="ai-source-image">{p.imageUrl?<img src={p.imageUrl} alt="" loading="lazy" referrerPolicy="no-referrer" onError={e=>{e.currentTarget.style.display='none'}}/>:<Package size={24}/>}</div><div><small>{p.sourceUrl?'나라장터':'엑셀 원본'} · {p.id}</small><strong>{p.name}</strong><b>{formatValue(p.unitPrice,'원')} <span>/ {p.unit||'단위 미확인'}</span></b><span>{unit}당 {formatValue(price(p.gramPrice),'원')} · 조회 {p.collectedAt?.slice(0,10)||'미확인'}</span><span className="source-nutrition">{p.verifiedNutrition?`공식 자료 ${p.verifiedNutrition.basis.text} 기준`:'DB 원문 · 기준 중량 미확인'}<br/>단백질 {formatValue(p.verifiedNutrition?p.verifiedNutrition.nutrients.protein.value:p.protein,'g')} · 나트륨 {formatValue(p.verifiedNutrition?p.verifiedNutrition.nutrients.sodium.value:p.sodium,'mg')}<br/>열량 {formatValue(p.verifiedNutrition?p.verifiedNutrition.nutrients.calories.value:p.calories,'kcal')}</span></div><ChevronRight size={16}/></button>}
 // 새로고침해도 대화가 남도록 이 브라우저에 최근 40개 메시지를 보관한다. "새 대화"를 누르면 비워진다.
