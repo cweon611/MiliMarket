@@ -25,3 +25,14 @@ test('ETag conflicts are retried and keep the other writer data; failures never 
  const failing=await createDataStore('',{cloud:true,client:broken});await failing.put(3,'nutrition',ok)
  assert.ok(failing.entries()[3],'result stays in memory for the next flush')
 })
+test('A suspended Blob store (403) never crashes the server and is not retried for 10 minutes',async()=>{
+ let calls=0,t=0
+ const sdk={BlobPreconditionFailedError:Conflict,async get(){calls++;throw Object.assign(new Error('Vercel Blob: Failed to fetch blob: 403 Forbidden'),{name:'BlobError'})},async put(){calls++;throw new Error('Vercel Blob: 403')}}
+ const store=await createDataStore('',{cloud:true,client:sdk,now:()=>t})
+ assert.deepEqual(store.entries(),{})
+ await store.put(1,'nutrition',ok);await store.refresh();await store.flush()
+ assert.equal(calls,1,'paused after the first failure')
+ assert.equal(store.entries()[1].nutrition.status,'ok','results stay in memory')
+ t+=11*60000;await store.refresh()
+ assert.equal(calls,2,'tries again after the pause')
+})
