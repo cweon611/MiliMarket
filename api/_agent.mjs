@@ -8,7 +8,7 @@ import {validateQuery} from './_query.mjs'
 import {publicProduct,gramPrice,alternatives} from '../shared/catalog.mjs'
 import {convertNutrition,nutrientKeys,NUTRIENT_META} from '../shared/nutrition.mjs'
 
-export const agentModel=()=>process.env.MILIMARKET_AGENT_MODEL?.trim()||process.env.ANTHROPIC_MODEL?.trim()||'claude-sonnet-5-5'
+export const agentModel=()=>process.env.MILIMARKET_AGENT_MODEL?.trim()||'claude-haiku-5-5'
 const workspaceId=()=>process.env.MILIMARKET_CLAUDE_WORKSPACE_ID?.trim()||process.env.ANTHROPIC_WORKSPACE_ID?.trim()||''
 const round=n=>n==null||!Number.isFinite(n)?null:Math.round(n*100)/100
 const clip=(s,n)=>String(s||'').slice(0,n)
@@ -118,7 +118,7 @@ export function ungroundedNumbers(text,sources){
 async function call(body,{key,model,timeoutMs,fetchImpl=fetch}){
   const fallback=/^claude-(sonnet-5-5|opus-5(-5)?|fable-5(-1)?)$/.test(model)
   const headers={'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01',...(fallback?{'anthropic-beta':'server-side-fallback-2026-07-01'}:{}),...(workspaceId()?{'anthropic-workspace-id':workspaceId()}:{})}
-  const response=await fetchImpl('https://api.anthropic.com/v1/messages',{method:'POST',signal:AbortSignal.timeout(timeoutMs),headers,body:JSON.stringify({model,max_tokens:2500,output_config:{effort:process.env.ANTHROPIC_EFFORT?.trim()||'low'},...(fallback?{fallbacks:'default'}:{}),...body})})
+  const response=await fetchImpl('https://api.anthropic.com/v1/messages',{method:'POST',signal:AbortSignal.timeout(timeoutMs),headers,body:JSON.stringify({model,max_tokens:2500,output_config:{effort:process.env.MILIMARKET_AGENT_EFFORT?.trim()||'medium'},...(fallback?{fallbacks:'default'}:{}),...body})})
   if(!response.ok){let d=null;try{d=await response.json()}catch{}console.error('Agent API error',response.status,model,d?.error?.type,d?.error?.message);throw new Error('agent_api_'+response.status)}
   return response.json()
 }
