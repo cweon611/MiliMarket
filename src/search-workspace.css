@@ -180,3 +180,14 @@
 .order-people .people-stepper{width:300px}
 .calculator-inputs .people-stepper>.people-field{position:relative;right:auto;font-size:inherit;color:inherit}
 .calculator-inputs .people-stepper .people-field input{width:100%;height:37px;padding:8px 26px 8px 10px}
+/* Leave enough room for category names beside counts and expand controls. */
+.search-workspace .category-row .category{gap:4px;padding-left:6px;padding-right:4px;text-align:left}
+.search-workspace .category-row .category>span{white-space:nowrap}
+.search-workspace .category-row .category>small{flex-shrink:0}
+/* Keep Korean words and short unit labels together on desktop. */
+@media(min-width:1101px){
+ .search-workspace .discovery-hint,.search-workspace .nutrition-filter p,.search-workspace .filter-note p,
+ .search-workspace .product-name,.search-workspace .spec,.search-workspace .calculator-product h3,
+ .search-workspace .quote-hint,.search-workspace .calculator-note{word-break:keep-all;overflow-wrap:anywhere;text-wrap:pretty}
+ .search-workspace .spec .sale-unit-label{white-space:nowrap}
+}

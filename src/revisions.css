@@ -36,3 +36,8 @@
 .gallery-zoom>img{display:block;margin:auto;max-width:100%;min-width:min(450px,100%);height:auto;object-fit:contain}
 .gallery-zoom>p{font-size:14px;color:#67785d}
 @media(max-width:680px){.search-workspace.home-search .search-portal.compact-search{margin-top:16px}.search-workspace .compact-search .search-bar{height:58px}.search-workspace .compact-search .search-scope{display:none}.search-workspace .compact-search .search-bar input{font-size:15px;padding-left:14px}.search-workspace .view-columns-2 .product-name{font-size:15px}}
+@media(min-width:1101px){
+ .comparison h3,.comparison p,.comparison dd,.verified-compare-grid h3{word-break:keep-all;overflow-wrap:anywhere;text-wrap:pretty}
+ .comparison dl>div{min-width:0;align-items:baseline}
+ .comparison dd{min-width:0}
+}
