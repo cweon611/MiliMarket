@@ -92,6 +92,6 @@ test('HTTP chat always uses Claude when configured, keeps state through advice a
  const rejected=await send('계란도 제외해줘');assert.equal(rejected.answerKind,'meal_clarification');assert.equal(rejected.plan,undefined);assert.match(rejected.text,/정확히 확인하지 못했어요/)
  const reset=await send('조건은 다 잊고 처음부터 얘기하자');assert.equal(reset.contextReset,true);assert.equal(memory.meal,null);assert.equal(memory.recommendation,null);assert.deepEqual(memory.recommendationSeenIds,[])
  const fresh=await send('두부 추천해줘');assert.equal(fresh.needsPreference,true);assert.equal(memory.meal,null)
- const classifications=calls.filter(x=>x.name==='catalog_query');assert.equal(classifications.length,10);assert.equal(classifications[3].data.confirmedMealRequest.people,150)
+ const classifications=calls.filter(x=>x.name==='catalog_query');assert.equal(classifications.length,11/* 거절된 인용을 고치는 재시도 1회 포함 */);assert.equal(classifications[3].data.confirmedMealRequest.people,150)
  assert.equal(classifications.at(-1).data.recommendationContext,null)
 })
