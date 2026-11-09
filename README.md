@@ -148,4 +148,4 @@ node --test tests/*.test.mjs scripts/catalog.test.mjs scripts/order-preferences.
 - `api/_agent.mjs`: Claude가 `search_products`·`rank_by_nutrition`·`get_products`·`find_alternatives` 도구를 직접 호출해 상품·영양 질문에 자연스럽게 답합니다. 가격·영양 숫자는 도구 결과에서만 가져오고, 답변에 근거 없는 숫자가 있으면 한 번 고치게 합니다. 식약처 확정값과 이미지에서 읽은 검증 전 값은 구분해 말합니다.
 - 식단 생성·조건 수정·초기화는 `catalog_query` 도구로 기존 식단 흐름(`api-server.mjs`)에 넘어갑니다. 에이전트가 실패하면 기존 방식으로 처리합니다.
 - `MILIMARKET_AGENT=off`로 기존 방식만 쓸 수 있고, `MILIMARKET_AGENT_MODEL`로 에이전트 모델을 따로 지정할 수 있습니다.
-- 로컬 측정: 인사 약 4초, 상품 추천 5–7초, 영양 순위 6–10초(기존 배포는 9–13초). 배포는 하지 않았습니다.
+- 로컬 측정: 인사 약 4초, 상품 추천 5–7초, 영양 순위 6–10초(기존 배포는 9–13초). 같은 날 milimarket-demo.vercel.app 운영에 배포했습니다(배포 ID dpl_9p9TyLmRwWSP6643QVLQ6gGqaX4H).
