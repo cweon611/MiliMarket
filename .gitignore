@@ -9,3 +9,5 @@ _archive/
 *.log
 claude api key.txt
 paper-revision/
+
+.env*
