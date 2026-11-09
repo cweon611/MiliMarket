@@ -66,6 +66,6 @@ test('Postgres data store: one batched upsert, shared reads, failures pause for 
 test('Postgres pool: TLS on by default, small pool for serverless',async()=>{
  let opts;const driver={Pool:class{constructor(o){opts=o}}}
  await createPostgresPool('postgresql://u:p@db.example.test/mili?sslmode=require',{driver})
- assert.equal(opts.connectionString,'postgresql://u:p@db.example.test/mili?sslmode=require');assert.equal(opts.ssl.rejectUnauthorized,true);assert.ok(opts.max<=5)
+ assert.equal(opts.connectionString,'postgresql://u:p@db.example.test/mili?sslmode=verify-full','require is upgraded to verify-full to silence the pg warning');assert.equal(opts.ssl.rejectUnauthorized,true);assert.ok(opts.max<=5)
  await createPostgresPool('postgresql://u:p@localhost/mili?sslmode=disable',{driver});assert.equal(opts.ssl,false)
 })
