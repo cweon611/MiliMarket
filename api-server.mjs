@@ -135,19 +135,19 @@ export async function handler(req,res){
           return json(res,200,{...reply,contextReset,chatContext:memory,mealRequestContext:memory.meal,recommendationContext:memory.recommendation})
         }
         // With a key, Claude reads every turn. Regex parsing is only the explicitly labelled no-key demo.
-        // 기본: Claude가 도구로 직접 답한다(MILIMARKET_AGENT=off로 기존 방식 사용). 식단/초기화 요청은 catalog_query로 기존 흐름에 넘어온다.
-        let interpreted=null
-        if(claudeKey()&&process.env.MILIMARKET_AGENT!=='off'){
+        // 기본: Claude가 도구로 직접 답한다(MILIMARKET_AGENT=off로 기존 방식 사용). 식단/초기화 요청은 catalog_query로 기존 해석기에 넘어간다.
+        // 기존 해석기는 시간을 아끼려고 에이전트와 동시에 시작하고, 에이전트가 직접 답하면 결과를 버린다.
+        const interpret=()=>interpretWithClaude(message,history,{conversation,planSettings:contextSettings,productIds:ids,recommendationContext,mealRequestContext:memory.meal})
+        const useAgent=claudeKey()&&process.env.MILIMARKET_AGENT!=='off'
+        const legacy=useAgent?interpret():null
+        legacy?.catch(()=>{})
+        if(useAgent){
           try{
             const agent=await runAgent({message,conversation,products:currentProducts(),image:imageNutrition,context:{confirmedMealRequest:memory.meal||null,currentPlanSettings:contextSettings,suppliedProductIds:ids,recommendationContext}})
-            if(agent?.reply){
-              const reply=agentReply(agent,currentProducts())
-              return respond(reply)
-            }
-            if(agent?.legacy)interpreted=agent.legacy
+            if(agent?.reply)return respond(agentReply(agent,currentProducts()))
           }catch(e){console.error('agent 실패, 기존 방식으로 처리:',String(e.message||e).slice(0,160))}
         }
-        interpreted=interpreted||await interpretWithClaude(message,history,{conversation,planSettings:contextSettings,productIds:ids,recommendationContext,mealRequestContext:memory.meal})
+        const interpreted=await(legacy||interpret())
         const demoMeal=interpreted?null:mealRequest(message,memory.meal),continued=interpreted||demoMeal?null:continueRecommendation(message,recommendationContext)
         const query=interpreted||(demoMeal?{intent:'plan'}:continued||interpretDemo(message,history)),mode=interpreted?'claude':'demo'
         if(interpreted&&query.resetContext===true&&hasUserEvidence(query.resetEvidence,[message])){
@@ -156,7 +156,14 @@ export async function handler(req,res){
         }
         const previousSeed=memory.meal?.seed||0
         if(interpreted&&(query.intent==='plan'||query.mealPatch||query.resetMealContext)){
-          const merged=mergeMealTurn(memory.meal,query,{message,history});memory.meal=merged.state
+          let merged=mergeMealTurn(memory.meal,query,{message,history})
+          // 인용이 원문과 달라 거절된 필드가 있으면 모델에게 한 번만 다시 인용하게 한다(근거 검증은 그대로).
+          if(merged.rejected.length){
+            const names=merged.rejected.join(', ')
+            const retry=await interpretWithClaude(message,history,{conversation,planSettings:contextSettings,productIds:ids,recommendationContext,mealRequestContext:memory.meal,correction:`mealEvidence가 사용자 발언과 일치하지 않아 거절된 필드: ${names}. 사용자 발언에서 글자 그대로 복사한 짧은 구절로 다시 쓰거나, 근거가 없으면 mealPatch에서 뺀다.`}).catch(()=>null)
+            if(retry){const again=mergeMealTurn(memory.meal,retry,{message,history});if(again.rejected.length<=merged.rejected.length){merged=again;Object.assign(query,retry)}}
+          }
+          memory.meal=merged.state
           if(query.resetMealContext===true&&hasUserEvidence(query.resetEvidence,[message]))memory.lastPlanProductIds=[]
           if(merged.rejected.length){
             const names={start:'날짜',days:'기간',meals:'끼니',composition:'메뉴 구성',people:'인원',preferences:'선호',preferenceNotes:'추가 선호',preferredIngredients:'선호 재료',exclusions:'제외 재료',mealBudgets:'예산',dailyTargets:'하루 영양 목표',mealTargets:'끼니 영양 목표',targetSource:'영양 기준 출처'}

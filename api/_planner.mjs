@@ -30,11 +30,13 @@ export function menuFamily(p) {
   const words=['주꾸미볶음','낙지볶음','오징어볶음','코다리강정','도토리묵','청포묵','동부묵','오믈렛','스크램블','구운계란','훈제란','반숙란',...familyWords]
   return words.find(x=>name.includes(x)) || normalize((p.market?.name||p.name).split(',').slice(2,-1).join('')||p.name).replace(/\d+(\.\d+)?(kg|g|ml|l|개|입|팩)|[()\-_/]/g,'').slice(0,40)
 }
+// 같은 재료의 다른 표기·가공품도 함께 제외한다(알레르기·종교 식단 조건). 간장·된장·고추장은 대두가 원료라서 대두 제외에 포함한다.
+const SYNONYMS={beef:/소고기|쇠고기|우육|한우|육우|소갈비|사골|우골|양지|사태|우지/,soy:/대두|메주콩|검은콩|서리태|두부|두유|간장|된장|고추장|청국장|두반장|쌈장|춘장|낫또|템페|레시틴|콩기름|콩단백|콩가루|콩나물|탈지대두|분리대두|조미대두/}
 export function excludes(p, terms) {
   if(!terms.length)return false
   if(!p.ingredients||/^(미제공|정보없음|-)$/u.test(p.ingredients.trim()))return true
   const haystack=normalize(`${p.name} ${p.market?.name||''} ${p.ingredients}`)
-  return terms.some(term=>/돼지|돈육/.test(term)?/돼지|돈육|포크|돈골|돈지/.test(haystack):/^(계란|달걀|난류)$/.test(normalize(term))?/계란|달걀|난류|난백|난황|전란|난액|에그/.test(haystack):haystack.includes(normalize(term)))
+  return terms.some(term=>/돼지|돈육/.test(term)?/돼지|돈육|포크|돈골|돈지/.test(haystack):/^(계란|달걀|난류)$/.test(normalize(term))?/계란|달걀|난류|난백|난황|전란|난액|에그/.test(haystack):/^(소고기|쇠고기|우육|한우|쇠고기류)$/.test(normalize(term))?SYNONYMS.beef.test(haystack):/^(대두|콩|대두류)$/.test(normalize(term))?SYNONYMS.soy.test(haystack):haystack.includes(normalize(term)))
 }
 export function roleOf(p) {
   const name=normalize(p.market?.name||p.name),type=p.market?.itemType||''

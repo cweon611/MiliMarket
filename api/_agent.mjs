@@ -140,7 +140,8 @@ export async function runAgent({message,conversation=[],context={},products,imag
     if(body.stop_reason==='refusal')throw new Error('이 요청은 AI가 처리하지 않도록 제한되어 있습니다. 질문을 바꿔 다시 시도해 주세요.')
     const uses=(body.content||[]).filter(c=>c.type==='tool_use')
     const legacy=uses.find(u=>u.name==='catalog_query')
-    if(legacy)return {legacy:validateQuery(legacy.input)}
+    // 식단 상태 해석은 검증된 기존 해석기가 맡는다(에이전트가 만든 조건은 쓰지 않는다).
+    if(legacy)return {legacy:true}
     const reply=uses.find(u=>u.name==='reply')
     const finish=r=>{
       const text=typeof r?.text==='string'?r.text.trim():''

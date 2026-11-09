@@ -37,7 +37,7 @@ test('agent: tool call then grounded reply; only tool-returned ids are shown',as
 test('agent: catalog_query hands meal flow back to the legacy pipeline',async()=>{
  const f=fakeFetch([msg([use('catalog_query',{intent:'plan',query:'',maxPrice:null,sort:'default',limit:5,priorityConfirmed:false})])])
  const out=await runAgent({message:'120명 식단',products,fetchImpl:f.fn})
- assert.equal(out.legacy.intent,'plan')
+ assert.equal(out.legacy,true)
 })
 
 test('agent: an ungrounded number is rejected once and the corrected reply is used',async()=>{

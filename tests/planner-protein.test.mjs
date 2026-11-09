@@ -16,3 +16,12 @@ test('High-protein preference ranks main dishes by official protein per 100g onl
 test('Chat intake recognizes a high-protein request',()=>{
  assert.ok(JSON.stringify(mealRequest('120명 일주일 식단 짜줘, 한식 고단백으로')).includes('고단백'))
 })
+
+test('exclusions cover synonyms: beef as 쇠고기/사골 and soy as 간장/된장/두부',async()=>{
+ const {excludes}=await import('../api/_planner.mjs')
+ const item=ingredients=>({name:'테스트',ingredients})
+ assert.equal(excludes(item('정제수, 사골, 쇠고기, 마늘'),['소고기']),true)
+ assert.equal(excludes(item('정제수, 간장(탈지대두, 밀), 설탕'),['대두']),true)
+ assert.equal(excludes(item('국산 두부, 소금'),['대두']),true)
+ assert.equal(excludes(item('닭고기 82%, 정제수, 마늘분말'),['소고기','대두']),false)
+})
