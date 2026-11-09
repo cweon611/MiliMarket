@@ -36,3 +36,79 @@ test('A suspended Blob store (403) never crashes the server and is not retried f
  t+=11*60000;await store.refresh()
  assert.equal(calls,2,'tries again after the pause')
 })
+
+test('Sequential lookup completions are queued until the response boundary and persisted in one write',async()=>{
+ const sdk=memoryBlob(),store=await createDataStore('',{cloud:true,client:sdk,deferWrites:true})
+ for(let i=0;i<40;i++)await store.put(10000000+i,'nutrition',ok)
+ assert.equal(sdk.puts,0,'lookups do not upload one file per result')
+ assert.equal(Object.keys(store.entries()).length,40,'results are immediately available for answers')
+ await Promise.all([store.flush(),store.flush()])
+ assert.equal(sdk.puts,1)
+ const loaded=await createDataStore('',{cloud:true,client:sdk})
+ assert.deepEqual(loaded.entries(),store.entries(),'all completed lookups survive a fresh instance')
+ await store.flush();assert.equal(sdk.puts,1,'unrelated API responses do not write again')
+})
+
+test('Identical results skip uploads in memory and when another instance has already stored them',async()=>{
+ const sdk=memoryBlob(),a=await createDataStore('',{cloud:true,client:sdk,deferWrites:true}),b=await createDataStore('',{cloud:true,client:sdk,deferWrites:true})
+ await a.put(1,'nutrition',ok);await a.flush()
+ await a.put(1,'nutrition',structuredClone(ok));await a.flush()
+ assert.equal(sdk.puts,1)
+ await b.put(1,'nutrition',structuredClone(ok));await b.flush()
+ assert.equal(sdk.puts,1,'fresh ETag read avoids uploading an already-persisted result')
+ const newer={...ok,fetchedAt:new Date(Date.parse(ok.fetchedAt)+1000).toISOString()}
+ await a.put(1,'nutrition',newer);await a.flush()
+ assert.equal(sdk.puts,2,'freshness changes are not discarded as duplicates')
+})
+
+test('Concurrent cache refreshes share one read and honor the existing refresh interval',async()=>{
+ let t=0,reads=0
+ const sdk=memoryBlob(),get=sdk.get
+ sdk.get=async(...args)=>{reads++;return get(...args)}
+ const store=await createDataStore('',{cloud:true,client:sdk,now:()=>t,deferWrites:true})
+ assert.equal(reads,1)
+ await store.refresh();assert.equal(reads,1)
+ t=6*60000
+ await Promise.all(Array.from({length:10},()=>store.refresh()))
+ assert.equal(reads,2)
+ await store.refresh();assert.equal(reads,2)
+})
+
+test('Results queued during an upload are flushed afterwards without being lost',async()=>{
+ const sdk=memoryBlob(),put=sdk.put
+ let release,started
+ const gate=new Promise(resolve=>release=resolve),uploadStarted=new Promise(resolve=>started=resolve)
+ let first=true
+ sdk.put=async(...args)=>{if(first){first=false;started();await gate}return put(...args)}
+ const store=await createDataStore('',{cloud:true,client:sdk,deferWrites:true})
+ await store.put(1,'nutrition',ok)
+ const uploading=store.flush();await uploadStarted
+ await store.put(2,'nutrition',ok);release();await uploading
+ assert.equal(sdk.puts,2)
+ assert.deepEqual(Object.keys(JSON.parse(sdk.files.get('catalog/public-data.json').body).entries),['1','2'])
+})
+
+test('Concurrent first creation retries a generic exists error and keeps both writers',async()=>{
+ const sdk=memoryBlob(),put=sdk.put
+ sdk.put=async(key,body,options)=>{
+  if(sdk.files.has(key)&&!options.allowOverwrite)throw new Error('blob already exists')
+  return put(key,body,options)
+ }
+ const a=await createDataStore('',{cloud:true,client:sdk,deferWrites:true}),b=await createDataStore('',{cloud:true,client:sdk,deferWrites:true})
+ await a.put(1,'nutrition',ok);await b.put(2,'nutrition',ok)
+ await Promise.all([a.flush(),b.flush()])
+ assert.deepEqual(Object.keys(JSON.parse(sdk.files.get('catalog/public-data.json').body).entries),['1','2'])
+})
+
+test('Failed deferred uploads retain the entire batch and retry after the existing pause',async()=>{
+ const sdk=memoryBlob(),put=sdk.put
+ let t=0,broken=true,attempts=0
+ sdk.put=async(...args)=>{attempts++;if(broken)throw new Error('Vercel Blob: 403');return put(...args)}
+ const store=await createDataStore('',{cloud:true,client:sdk,now:()=>t,deferWrites:true})
+ for(let i=1;i<=40;i++)await store.put(i,'nutrition',ok)
+ await store.flush();await store.flush();assert.equal(attempts,1)
+ assert.equal(Object.keys(store.entries()).length,40)
+ t=11*60000;broken=false;await store.flush()
+ assert.equal(attempts,2)
+ assert.equal(Object.keys(JSON.parse(sdk.files.get('catalog/public-data.json').body).entries).length,40)
+})

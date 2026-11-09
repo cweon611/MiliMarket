@@ -1,3 +1,4 @@
+import {createWriteBuffer,mergePatches as patched,sameValue} from './_write-buffer.mjs'
 // Postgres 저장소(Neon 등): 계정·세션·식단 기록·공공데이터 캐시. DATABASE_URL이 있으면 Vercel Blob 대신 사용한다.
 // 접속 URL 예: postgresql://user:pass@host/db?sslmode=require
 import {createHash,randomBytes} from 'node:crypto'
@@ -31,10 +32,10 @@ export function createPostgresAccountStore(pool){
   return rows.map(r=>({id:r.id,createdAt:r.created_at,plan:asJson(r.plan)}))
  }
  const store={
-  async findUser(email){
+  async findUser(email,{includeHistory=true}={}){
    const {rows}=await pool.query('SELECT data FROM users WHERE email=$1',[email])
    if(!rows.length)return null
-   return {...asJson(rows[0].data),history:await history(email)}
+   return {...asJson(rows[0].data),history:includeHistory?await history(email):[]}
   },
   async createUser(user){
    const {history:_ignored,...data}=user
@@ -47,12 +48,12 @@ export function createPostgresAccountStore(pool){
    await pool.query('INSERT INTO sessions (token_hash, email, expires) VALUES ($1, $2, $3)',[hash(token),user.email,Date.now()+86400000])
    return token
   },
-  async getSession(token){
+  async getSession(token,options){
    if(!/^[a-f0-9]{64}$/.test(token||''))return null
    const {rows}=await pool.query('SELECT email, expires FROM sessions WHERE token_hash=$1',[hash(token)])
    if(!rows.length)return null
    if(Number(rows[0].expires)<Date.now()){await store.deleteSession(token);return null}
-   return store.findUser(rows[0].email)
+   return store.findUser(rows[0].email,options)
   },
   async deleteSession(token){if(/^[a-f0-9]{64}$/.test(token||''))await pool.query('DELETE FROM sessions WHERE token_hash=$1',[hash(token)])},
   async saveHistory(user,entry){
@@ -68,9 +69,8 @@ export function createPostgresAccountStore(pool){
 // 공공데이터(식약처·나라장터) 조회 결과 캐시. _data-store.mjs의 createDataStore와 같은 인터페이스.
 // 실패해도 서버를 멈추지 않는다: 결과는 메모리에 남고 10분 뒤 다시 시도한다.
 const REFRESH_MS=5*60000,PAUSE_MS=10*60000
-export async function createPostgresDataStore(pool,{now=Date.now}={}){
- let entries={},pending={},writing=null,refreshedAt=0,pausedUntil=0
- const patched=(base,batch)=>{const out={...base};for(const [id,patch] of Object.entries(batch))out[id]={...out[id],...patch};return out}
+export async function createPostgresDataStore(pool,{now=Date.now,deferWrites=false}={}){
+ let entries={},refreshedAt=0,pausedUntil=0,refreshing=null
  const paused=()=>now()<pausedUntil
  const pause=e=>{pausedUntil=now()+PAUSE_MS;console.error('공공데이터 저장소 10분간 중지:',e.message)}
  async function read(){
@@ -84,25 +84,25 @@ export async function createPostgresDataStore(pool,{now=Date.now}={}){
   // 한 문장으로 일괄 upsert: unnest로 세 배열을 행으로 펼친다.
   await pool.query('INSERT INTO public_data (product_id, provider, value) SELECT * FROM unnest($1::text[], $2::text[], $3::jsonb[]) ON CONFLICT (product_id, provider) DO UPDATE SET value=EXCLUDED.value',[rows.map(r=>r[0]),rows.map(r=>r[1]),rows.map(r=>r[2])])
  }
- async function flush(){
-  if(paused())return
-  while(writing||Object.keys(pending).length){
-   if(!writing){const batch=pending;pending={};writing=write(batch).catch(e=>{pending=patched(batch,pending);throw e}).finally(()=>{writing=null})}
-   try{await writing}catch(e){pause(e);return}
-  }
- }
+ const buffer=createWriteBuffer({write,paused,onError:pause})
  try{entries=await read();refreshedAt=now()}catch(e){pause(e)}
  return {
   entries:()=>entries,
   async refresh(){
    if(paused()||now()-refreshedAt<REFRESH_MS)return
-   try{entries=patched({...entries,...await read()},pending);refreshedAt=now()}catch(e){pause(e)}
+   if(refreshing)return refreshing
+   refreshing=(async()=>{
+    try{entries=patched({...entries,...await read()},buffer.pending());refreshedAt=now()}catch(e){pause(e)}
+   })().finally(()=>{refreshing=null})
+   return refreshing
   },
-  flush,
+  flush:buffer.flush,
   async put(id,provider,value){
    if(!['ok','empty'].includes(value.status))return
-   const patch={[provider]:value};entries=patched(entries,{[id]:patch});pending=patched(pending,{[id]:patch})
-   await flush()
+   if(!sameValue(entries[id]?.[provider],value)){
+    const patch={[provider]:value};entries=patched(entries,{[id]:patch});buffer.queue({[id]:patch})
+   }
+   if(!deferWrites)await buffer.flush()
   }
  }
 }

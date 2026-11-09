@@ -1,3 +1,4 @@
+import {readJsonResponse} from '../shared/http-response.mjs'
 import {useEffect,useState} from 'react'
 import {Database, ExternalLink, LoaderCircle, RefreshCw} from 'lucide-react'
 import './public-data.css'
@@ -30,7 +31,7 @@ export function ProductPublicData({id}:{id:number}){
   const [data,setData]=useState<ProductData|null>(null),[error,setError]=useState(''),[loading,setLoading]=useState(true),[attempt,setAttempt]=useState(0)
   useEffect(()=>{
     const controller=new AbortController();setData(null);setError('');setLoading(true)
-    fetch(`/api/product-data?id=${id}`,{signal:controller.signal}).then(async r=>{const b=await r.json();if(!r.ok)throw new Error(b.error||'조회에 실패했습니다.');return b as ProductData}).then(d=>{setData(d);window.dispatchEvent(new Event('official-data-updated'))}).catch(e=>{if(!controller.signal.aborted)setError(e.message)}).finally(()=>{if(!controller.signal.aborted)setLoading(false)})
+    fetch(`/api/product-data?id=${id}`,{signal:controller.signal}).then(async r=>{return await readJsonResponse(r,'조회에 실패했습니다.') as ProductData}).then(d=>{setData(d);window.dispatchEvent(new Event('official-data-updated'))}).catch(e=>{if(!controller.signal.aborted)setError(e.message)}).finally(()=>{if(!controller.signal.aborted)setLoading(false)})
     return ()=>controller.abort()
   },[id,attempt])
   return <section className="detail-box public-data-panel" aria-label="공공 API 상품 및 영양 정보">

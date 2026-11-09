@@ -1,3 +1,4 @@
+import {readJsonResponse} from '../shared/http-response.mjs'
 import { Flame, Beef, Wheat, Droplets, Candy, Waves, Bone, Info, type LucideIcon } from 'lucide-react'
 import {useEffect,useRef,useState,type ReactNode} from 'react'
 import type {Product} from './data'
@@ -26,7 +27,7 @@ export function NutritionSync({query}:{query:string}){
  const [busy,setBusy]=useState(false),[offset,setOffset]=useState(0),[done,setDone]=useState(false),[message,setMessage]=useState('')
  const requestVersion=useRef(0)
  useEffect(()=>{requestVersion.current++;setOffset(0);setDone(false);setMessage('')},[query])
- async function sync(){const version=requestVersion.current;setBusy(true);try{const response=await fetch('/api/nutrition-sync',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({query,offset})}),r=await response.json();if(!response.ok)throw new Error(r.error);window.dispatchEvent(new Event('official-data-updated'));if(version!==requestVersion.current)return;setOffset(r.next);setDone(r.done);setMessage(r.failed?`${r.failed}건 조회 실패 · 다시 누르면 같은 범위를 재시도합니다.`:`${r.total.toLocaleString()}건 중 ${r.next.toLocaleString()}건 조회 · 이번 보고번호 일치 ${r.confirmed}건`)}catch(e){if(version===requestVersion.current)setMessage((e as Error).message)}finally{setBusy(false)}}
+ async function sync(){const version=requestVersion.current;setBusy(true);try{const response=await fetch('/api/nutrition-sync',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({query,offset})}),r=await readJsonResponse(response);window.dispatchEvent(new Event('official-data-updated'));if(version!==requestVersion.current)return;setOffset(r.next);setDone(r.done);setMessage(r.failed?`${r.failed}건 조회 실패 · 다시 누르면 같은 범위를 재시도합니다.`:`${r.total.toLocaleString()}건 중 ${r.next.toLocaleString()}건 조회 · 이번 보고번호 일치 ${r.confirmed}건`)}catch(e){if(version===requestVersion.current)setMessage((e as Error).message)}finally{setBusy(false)}}
  return <div className="nutrition-sync"><div><strong>공식 영양 데이터</strong><small>{message||'검색어에 해당하는 상품을 20개씩 확인하고 모든 화면에 반영합니다.'}</small></div><button type="button" disabled={busy||done} onClick={()=>void sync()}>{busy?'영양 자료 확인 중…':done?'조회 완료':offset?'다음 20개 가져오기':'영양 자료 가져오기'}</button></div>
 }
 export function VerifiedNutrition({product:p}:{product:Product}){

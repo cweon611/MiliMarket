@@ -1,3 +1,4 @@
+import {readJsonResponse} from '../shared/http-response.mjs'
 import type {NutritionAggregate} from './MealNutritionEvidence'
 import type {NutrientCondition} from './NutritionTools'
 import type {NutritionEvidence} from './PublicData'
@@ -12,4 +13,4 @@ export interface Plan {nutritionVerified?:boolean;nutrition?:{targetSource:strin
 export interface Reply {contextReset?:boolean;chatContext?:{meal:Record<string,unknown>|null;recommendation:Record<string,unknown>|null};mealRequestContext?:Record<string,unknown>;needsMealDetails?:boolean;needsPreference?:boolean;recommendationContext?:Record<string,unknown>;answerKind?:string;generalNotice?:string;followUps?:string[];recommendations?:{id:number;reasons:string[]}[];plan?:Plan;highlights?:string[];explanationNotice?:string;needsBasis?:boolean;nutritionEvidence?:NutritionEvidence[];mode:string;text:string;products:SourceProduct[];blocked?:boolean;count?:number;planSettings?:Partial<PlanSettings>}
 export interface Message {role:'user'|'assistant';text:string;reply?:Reply}
 export const initialPlanSettings:PlanSettings={start:new Date().toLocaleDateString('sv-SE',{timeZone:'Asia/Seoul'}),days:7,people:120,mealBudgets:[4000,5000,4000],exclusions:[],dessert:true,cuisine:'한식',seed:0}
-export async function api<T>(url:string,body?:unknown):Promise<T>{const response=await fetch(url,{credentials:'same-origin',...(body!==undefined?{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}:{})});const data=await response.json();if(!response.ok)throw new Error(data.error||'요청을 처리하지 못했습니다.');return data}
+export async function api<T>(url:string,body?:unknown):Promise<T>{const response=await fetch(url,{credentials:'same-origin',...(body!==undefined?{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}:{})});return readJsonResponse(response)}
