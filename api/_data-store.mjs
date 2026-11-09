@@ -2,10 +2,14 @@ import {readFile,writeFile,mkdir,rename} from 'node:fs/promises'
 import path from 'node:path'
 import {verifiedRecord} from '../shared/nutrition.mjs'
 import {isFresh} from '../shared/official-nutrition.mjs'
-export async function createDataStore(directory,{cloud=false,client}={}){
+// Blob은 캐시일 뿐이다: 저장소가 막히거나 한도를 넘어도 서버는 메모리 값으로 계속 동작한다.
+const REFRESH_MS=5*60000,PAUSE_MS=10*60000
+export async function createDataStore(directory,{cloud=false,client,now=Date.now}={}){
  const file=path.join(directory,'public-data.json'),key='catalog/public-data.json'
  const sdk=cloud?(client||await import('@vercel/blob')):null
- let entries={},pending={},writing=null
+ let entries={},pending={},writing=null,pausedUntil=0,refreshedAt=0
+ const paused=()=>!!sdk&&now()<pausedUntil
+ const pause=e=>{pausedUntil=now()+PAUSE_MS;console.error('공공데이터 저장소 10분간 중지:',e.message)}
  async function read(){if(sdk){const r=await sdk.get(key,{access:'private',useCache:false});return r?{entries:(await new Response(r.stream).json()).entries||{},etag:r.blob.etag}:{entries:{}}}try{return JSON.parse(await readFile(file,'utf8'))}catch(e){if(e.code!=='ENOENT')throw e;return {entries:{}}}}
  const patched=(base,batch)=>{const out={...base};for(const [id,patch] of Object.entries(batch))out[id]={...out[id],...patch};return out}
  // One writer per instance: lookups queue patches and many of them share one conditional Blob write.
@@ -21,14 +25,19 @@ export async function createDataStore(directory,{cloud=false,client}={}){
  // Never throws: a failed batch stays pending and is retried by the next flush.
  async function flush(){
   while(writing||Object.keys(pending).length){
+   if(paused())return
    if(!writing){const batch=pending;pending={};writing=write(batch).catch(e=>{pending=patched(batch,pending);throw e}).finally(()=>{writing=null})}
-   try{await writing}catch(e){console.error('공공데이터 저장 실패:',e.message);return}
+   try{await writing}catch(e){if(sdk)pause(e);else console.error('공공데이터 저장 실패:',e.message);return}
   }
  }
- entries=(await read()).entries
+ try{entries=(await read()).entries;refreshedAt=now()}catch(e){if(!sdk)throw e;pause(e)}
  return {
   entries:()=>entries,
-  async refresh(){if(sdk)entries=patched({...entries,...(await read()).entries},pending)},
+  // 다른 인스턴스가 저장한 결과는 5분에 한 번만 다시 읽는다.
+  async refresh(){
+   if(!sdk||paused()||now()-refreshedAt<REFRESH_MS)return
+   try{entries=patched({...entries,...(await read()).entries},pending);refreshedAt=now()}catch(e){pause(e)}
+  },
   flush,
   async put(id,provider,value){
    if(!['ok','empty'].includes(value.status))return

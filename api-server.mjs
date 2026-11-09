@@ -16,6 +16,7 @@ import {getProductImages} from './api/_product-images.mjs'
 import {createPublicDataService} from './api/_public-data.mjs'
 import {answerNutrition} from './api/_nutrition-answer.mjs'
 import {createDataStore,applyOfficialData} from './api/_data-store.mjs'
+import {createMysqlPool,ensureSchema,createMysqlAccountStore,createMysqlDataStore} from './api/_mysql.mjs'
 import {candidates,lookupBatch} from './api/_retrieval.mjs'
 import {nutrientKeys} from './shared/nutrition.mjs'
 import {alternativeFacts} from './shared/alternative-facts.mjs'
@@ -24,15 +25,21 @@ import {alternatives} from './shared/catalog.mjs'
 import {createNutrientPlan,assessPlan} from './api/_plan-nutrition.mjs'
 import {mealRequest,mealRequestReply,mealRequestSettings,validateMealContext} from './api/_meal-request.mjs'
 import {chatMemory,mergeMealTurn,hasUserEvidence} from './api/_chat-state.mjs'
+import {runAgent,agentReply} from './api/_agent.mjs'
 const scrypt=promisify(scryptCallback),root=process.env.VERCEL?process.cwd():path.dirname(fileURLToPath(import.meta.url))
 try {for(const line of (await readFile(path.join(root,'.env'),'utf8')).split(/\r?\n/)){const m=line.match(/^([A-Z_]+)=(.*)$/);if(m&&process.env[m[1]]===undefined)process.env[m[1]]=m[2].trim().replace(/^['"]|['"]$/g,'')}}catch(e){if(e.code!=='ENOENT')throw e}
 const rows=JSON.parse(await readFile(path.join(root,'public/data/products.json'),'utf8'))
 const market=JSON.parse(await readFile(path.join(root,'public/data/market-enrichment.json'),'utf8'))
 const products=mergeCatalog(rows,market)
-const dataStore=await createDataStore(process.env.MILIMARKET_DATA_DIR||path.join(root,'.local'),{cloud:!!process.env.VERCEL})
+// MYSQL_URL이 있으면 계정·세션·기록·공공데이터 캐시를 MySQL에 둔다(Vercel Blob 미사용). 없으면 로컬 파일 또는 Blob.
+const mysqlPool=process.env.MYSQL_URL?.trim()?await createMysqlPool(process.env.MYSQL_URL.trim()):null
+if(mysqlPool)await ensureSchema(mysqlPool)
+const dataStore=mysqlPool?await createMysqlDataStore(mysqlPool):await createDataStore(process.env.MILIMARKET_DATA_DIR||path.join(root,'.local'),{cloud:!!process.env.VERCEL})
 const publicData=createPublicDataService({saved:()=>officialData(),onResult:(id,provider,value)=>dataStore.put(id,provider,value)})
 // 식약처 일괄 매칭 확정분(배포 포함) 위에 실시간 조회 결과를 겹친다.
 const bulkOfficial=officialEntries(await readFile(path.join(root,'public/data/official-nutrition.json'),'utf8').then(JSON.parse).catch(()=>null))
+// 상품 상세 이미지에서 읽은 검증 전 영양값(에이전트가 확정값과 구분해서만 사용).
+const imageNutrition=await readFile(path.join(root,'public/data/image-nutrition.json'),'utf8').then(t=>JSON.parse(t).records||{}).catch(()=>({}))
 const officialData=()=>mergeOfficialEntries(bulkOfficial,dataStore.entries())
 const currentProducts=()=>applyOfficialData(products,officialData())
 async function generatePlan(input){
@@ -47,7 +54,7 @@ async function generatePlan(input){
 }
 const rates=new Map()
 const cloud=!!process.env.VERCEL
-const store=cloud?await createBlobStore():await createLocalStore(process.env.MILIMARKET_DATA_DIR||path.join(root,'.local'))
+const store=mysqlPool?createMysqlAccountStore(mysqlPool):cloud?await createBlobStore():await createLocalStore(process.env.MILIMARKET_DATA_DIR||path.join(root,'.local'))
 // Lookup results are written once per response instead of once per product.
 const json=async(res,status,data,headers={})=>{await dataStore.flush();res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...headers});res.end(JSON.stringify(data))}
 async function readBody(req){
@@ -56,7 +63,9 @@ async function readBody(req){
   let body='';for await(const chunk of req){body+=chunk;if(Buffer.byteLength(body)>128000)throw new Error('입력 내용이 너무 깁니다.')}return JSON.parse(body)
 }
 const cookieToken=req=>req.headers.cookie?.match(/(?:^|;\s*)mm_session=([a-f0-9]+)/)?.[1]
-const userOf=req=>store.getSession(cookieToken(req))
+// 계정 저장소가 막혀도 나머지 기능은 비로그인 상태로 계속 쓸 수 있게 한다.
+const userOf=req=>store.getSession(cookieToken(req)).catch(e=>{console.error('세션 확인 실패:',e.message);return null})
+const storageDown=e=>/^Blob/.test(e?.name||'')||/Vercel Blob/.test(e?.message||'')
 const safeUser=u=>u?{id:u.id,name:u.name,email:u.email}:null
 async function loginSession(res,user){const id=await store.createSession(user);await json(res,200,{user:safeUser(user)},{'Set-Cookie':`mm_session=${id}; HttpOnly; SameSite=Strict; Path=/; Max-Age=86400${cloud?'; Secure':''}`})}
 function limit(req,key,max){const now=Date.now(),id=`${req.socket.remoteAddress}:${key}`,entry=rates.get(id);if(!entry||entry.until<now){rates.set(id,{n:1,until:now+60000});return true}return ++entry.n<=max}
@@ -93,7 +102,7 @@ export async function handler(req,res){
         catch{return json(res,502,{error:'나라장터 이미지 조회가 지연되고 있습니다. 다시 시도해 주세요.'})}
       }
       const user=await userOf(req),method=req.method
-      if(url.pathname==='/api/status'&&method==='GET')return json(res,200,{configured:!!claudeKey(),model:process.env.ANTHROPIC_MODEL?.trim()||'claude-sonnet-5-5',catalogCount:products.length,user:safeUser(user),dataProviders:publicData.status()})
+      if(url.pathname==='/api/status'&&method==='GET')return json(res,200,{configured:!!claudeKey(),model:process.env.ANTHROPIC_MODEL?.trim()||'claude-sonnet-5-5',catalogCount:products.length,user:safeUser(user),dataProviders:publicData.status(),storage:mysqlPool?'mysql':cloud?'blob':'local'})
       if(['/api/register','/api/login'].includes(url.pathname)&&method==='POST'){
         if(!limit(req,'auth',10))return json(res,429,{error:'로그인 시도가 많습니다. 1분 후 다시 시도해 주세요.'})
         const body=await readBody(req),email=String(body.email||'').trim().toLowerCase(),password=String(body.password||'')
@@ -132,7 +141,19 @@ export async function handler(req,res){
           return json(res,200,{...reply,contextReset,chatContext:memory,mealRequestContext:memory.meal,recommendationContext:memory.recommendation})
         }
         // With a key, Claude reads every turn. Regex parsing is only the explicitly labelled no-key demo.
-        const interpreted=await interpretWithClaude(message,history,{conversation,planSettings:contextSettings,productIds:ids,recommendationContext,mealRequestContext:memory.meal})
+        // 기본: Claude가 도구로 직접 답한다(MILIMARKET_AGENT=off로 기존 방식 사용). 식단/초기화 요청은 catalog_query로 기존 해석기에 넘어간다.
+        // 기존 해석기는 시간을 아끼려고 에이전트와 동시에 시작하고, 에이전트가 직접 답하면 결과를 버린다.
+        const interpret=()=>interpretWithClaude(message,history,{conversation,planSettings:contextSettings,productIds:ids,recommendationContext,mealRequestContext:memory.meal})
+        const useAgent=claudeKey()&&process.env.MILIMARKET_AGENT!=='off'
+        const legacy=useAgent?interpret():null
+        legacy?.catch(()=>{})
+        if(useAgent){
+          try{
+            const agent=await runAgent({message,conversation,products:currentProducts(),image:imageNutrition,context:{confirmedMealRequest:memory.meal||null,currentPlanSettings:contextSettings,suppliedProductIds:ids,recommendationContext}})
+            if(agent?.reply)return respond(agentReply(agent,currentProducts()))
+          }catch(e){console.error('agent 실패, 기존 방식으로 처리:',String(e.message||e).slice(0,160))}
+        }
+        const interpreted=await(legacy||interpret())
         const demoMeal=interpreted?null:mealRequest(message,memory.meal),continued=interpreted||demoMeal?null:continueRecommendation(message,recommendationContext)
         const query=interpreted||(demoMeal?{intent:'plan'}:continued||interpretDemo(message,history)),mode=interpreted?'claude':'demo'
         if(interpreted&&query.resetContext===true&&hasUserEvidence(query.resetEvidence,[message])){
@@ -141,7 +162,14 @@ export async function handler(req,res){
         }
         const previousSeed=memory.meal?.seed||0
         if(interpreted&&(query.intent==='plan'||query.mealPatch||query.resetMealContext)){
-          const merged=mergeMealTurn(memory.meal,query,{message,history});memory.meal=merged.state
+          let merged=mergeMealTurn(memory.meal,query,{message,history})
+          // 인용이 원문과 달라 거절된 필드가 있으면 모델에게 한 번만 다시 인용하게 한다(근거 검증은 그대로).
+          if(merged.rejected.length){
+            const names=merged.rejected.join(', ')
+            const retry=await interpretWithClaude(message,history,{conversation,planSettings:contextSettings,productIds:ids,recommendationContext,mealRequestContext:memory.meal,correction:`mealEvidence가 사용자 발언과 일치하지 않아 거절된 필드: ${names}. 사용자 발언에서 글자 그대로 복사한 짧은 구절로 다시 쓰거나, 근거가 없으면 mealPatch에서 뺀다.`}).catch(()=>null)
+            if(retry){const again=mergeMealTurn(memory.meal,retry,{message,history});if(again.rejected.length<=merged.rejected.length){merged=again;Object.assign(query,retry)}}
+          }
+          memory.meal=merged.state
           if(query.resetMealContext===true&&hasUserEvidence(query.resetEvidence,[message]))memory.lastPlanProductIds=[]
           if(merged.rejected.length){
             const names={start:'날짜',days:'기간',meals:'끼니',composition:'메뉴 구성',people:'인원',preferences:'선호',preferenceNotes:'추가 선호',preferredIngredients:'선호 재료',exclusions:'제외 재료',mealBudgets:'예산',dailyTargets:'하루 영양 목표',mealTargets:'끼니 영양 목표',targetSource:'영양 기준 출처'}
@@ -196,7 +224,7 @@ export async function handler(req,res){
     const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.webp':'image/webp','.svg':'image/svg+xml','.woff2':'font/woff2'}[path.extname(file)]||'application/octet-stream'
     res.writeHead(200,{'Content-Type':mime,'X-Content-Type-Options':'nosniff','Cache-Control':relative==='index.html'?'no-cache':'public, max-age=300'})
     res.end(req.method==='HEAD'?undefined:await readFile(file))
-  }catch(e){if(e.code==='ENOENT'){res.writeHead(404);res.end('Not found')}else await json(res,e.statusCode||400,{error:e.name==='TimeoutError'?'Claude 응답 시간이 초과되었습니다. 다시 시도해 주세요.':e instanceof SyntaxError?'입력 형식을 확인해 주세요.':String(e.message).slice(0,240)})}
+  }catch(e){if(e.code==='ENOENT'){res.writeHead(404);res.end('Not found')}else if(storageDown(e)){console.error('계정 저장소 오류:',e.message);await json(res,503,{error:'계정 저장소가 일시적으로 중단되어 로그인·회원가입·식단 저장을 할 수 없습니다. AI 채팅과 상품 검색은 로그인 없이 이용할 수 있습니다.'})}else await json(res,e.statusCode||400,{error:e.name==='TimeoutError'?'Claude 응답 시간이 초과되었습니다. 다시 시도해 주세요.':e instanceof SyntaxError?'입력 형식을 확인해 주세요.':String(e.message).slice(0,240)})}
 }
 export const server=http.createServer(handler)
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url))server.listen(Number(process.env.PORT)||5184,'127.0.0.1',()=>console.log(`MiliMarket demo: http://127.0.0.1:${Number(process.env.PORT)||5184} (Claude ${claudeKey()?'configured':'key not set'})`))

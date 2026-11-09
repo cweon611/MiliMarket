@@ -1,5 +1,5 @@
 // 상품 상세 이미지(나라장터)에서 영양성분표를 읽어 영양 정보를 추출한다. 결과는 '검증 전' 자료이며 식약처 확정 자료와 섞지 않는다.
-// 사용: node scripts/extract_image_nutrition.mjs --set=unverified|verified [--limit=50] [--offset=0] [--concurrency=3] [--collect-only] [--build]
+// 사용: node scripts/extract_image_nutrition.mjs --set=unverified|verified [--limit=50] [--offset=0] [--concurrency=3] [--collect-only] [--build] [--retry=parse_error,no_basis]
 //  - 이미지: .local/image-nutrition/img/  · 추출 결과(이어받기): .local/image-nutrition/results.jsonl
 //  - --build: 결과를 public/data/image-nutrition.json(배포용)으로 내보낸다.
 import {readFile,writeFile,appendFile,mkdir,access} from 'node:fs/promises'
@@ -30,7 +30,8 @@ if(args.build){
     return 'partial'
   }
   const records={},grades={full:0,partial:0},official=(await load('public/data/official-nutrition.json')).records
-  for(const r of await readJsonl(resultsFile)){const g=classify(r);if(!g||official[r.id])continue;/* 식약처 확정 상품은 확정 자료를 우선한다 */records[r.id]={b:r.basis,v:r.values,i:r.image,t:r.extractedAt,g};grades[g]++}
+  const latest=new Map();for(const r of await readJsonl(resultsFile))latest.set(r.id,r) // 재시도한 상품은 마지막 결과를 쓴다
+  for(const r of latest.values()){const g=classify(r);if(!g||official[r.id])continue;/* 식약처 확정 상품은 확정 자료를 우선한다 */records[r.id]={b:r.basis,v:r.values,i:r.image,t:r.extractedAt,g};grades[g]++}
   console.log('등급',grades)
   await writeFile(path.join(root,'public','data','image-nutrition.json'),JSON.stringify({source:'상품 상세 이미지(나라장터) 영양성분표 · 모델 추출',verified:false,model:MODEL,count:Object.keys(records).length,records}))
   console.log(`public/data/image-nutrition.json: ${Object.keys(records).length}개`);process.exit(0)
@@ -64,15 +65,19 @@ if(!KEY)throw new Error('MILIMARKET_CLAUDE_API_KEY가 필요합니다.')
 const NUT=['calories','protein','fat','carbs','sugars','sodium','calcium']
 const nullableNum={anyOf:[{type:'number'},{type:'null'}]}
 const schema={type:'object',additionalProperties:false,required:['hasTable','imageIndex','basisAmount','basisUnit','calories','protein','fat','carbs','sugars','sodium','calcium'],properties:{hasTable:{type:'boolean'},imageIndex:{anyOf:[{type:'integer'},{type:'null'}]},basisAmount:nullableNum,basisUnit:{anyOf:[{type:'string',enum:['g','mL']},{type:'null'}]},calories:nullableNum,protein:nullableNum,fat:nullableNum,carbs:nullableNum,sugars:nullableNum,sodium:nullableNum,calcium:nullableNum}}
-const system='너는 식품 상세 이미지에서 영양성분표를 읽는 도구다. 이미지들 중 "영양정보/영양성분" 표가 읽히는 것을 찾는다. 원재료명·주의사항·포장 사진만 있으면 hasTable=false로 하고 나머지는 null이다. 표에 실제로 적힌 숫자만 옮기고 추측·계산·보정을 하지 않는다. 읽을 수 없거나 표에 없는 항목은 null이다(0과 다르다). 기준량은 표의 100g(또는 100mL)당 열이 있으면 그것을, 없으면 1회 제공량의 g·mL를 basisAmount/basisUnit에 적는다. 단위가 g·mL로 확인되지 않으면 basisAmount와 basisUnit을 null로 한다. 열량 kcal, 단백질·지방·탄수화물·당류 g, 나트륨·칼슘 mg 값이며 %영양성분기준치는 쓰지 않는다. imageIndex는 표가 있는 이미지의 번호(0부터)다.'
+const system='너는 식품 상세 이미지에서 영양성분표를 읽는 도구다. 이미지들 중 "영양정보/영양성분" 표가 읽히는 것을 찾는다. 원재료명·주의사항·포장 사진만 있으면 hasTable=false로 하고 나머지는 null이다. 표에 실제로 적힌 숫자만 옮기고 추측·계산·보정을 하지 않는다. 읽을 수 없거나 표에 없는 항목은 null이다(0과 다르다). 기준량은 표의 100g(또는 100mL)당 열이 있으면 그것을, 없으면 1회 제공량의 g·mL를 basisAmount/basisUnit에 적는다. "총 내용량 400g"·"1포장(250g)당"처럼 표 전체가 특정 중량·용량 기준이면 그 숫자가 기준량이다(예: 총 내용량 400g → basisAmount 400, basisUnit g). 기준량이 어디에도 없을 때만 null이다. 단위가 g·mL로 확인되지 않으면 basisAmount와 basisUnit을 null로 한다. 열량 kcal, 단백질·지방·탄수화물·당류 g, 나트륨·칼슘 mg 값이며 %영양성분기준치는 쓰지 않는다. imageIndex는 표가 있는 이미지의 번호(0부터)다.'
 const MIME={jpg:'image/jpeg',png:'image/png',webp:'image/webp',gif:'image/gif'}
 async function callClaude(content,attempt=0){
-  const res=await retry(()=>fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':KEY,'anthropic-version':'2023-06-01',...(WORKSPACE?{'anthropic-workspace-id':WORKSPACE}:{})},body:JSON.stringify({model:MODEL,max_tokens:1200,system,output_config:{effort:'low',format:{type:'json_schema',schema}},messages:[{role:'user',content}]}),signal:AbortSignal.timeout(90000)}))
+  const res=await retry(()=>fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':KEY,'anthropic-version':'2023-06-01',...(WORKSPACE?{'anthropic-workspace-id':WORKSPACE}:{})},body:JSON.stringify({model:MODEL,max_tokens:2000,system,output_config:{effort:'low',format:{type:'json_schema',schema}},messages:[{role:'user',content}]}),signal:AbortSignal.timeout(90000)}))
   if([429,500,502,503,529].includes(res.status)&&attempt<5){await sleep(2000*(attempt+1));return callClaude(content,attempt+1)}
   const body=await res.json();if(!res.ok)throw new Error(`HTTP ${res.status} ${JSON.stringify(body).slice(0,200)}`)
   return body
 }
-const done=new Set((await readJsonl(resultsFile)).map(r=>r.id))
+const latestResult=new Map();for(const r of await readJsonl(resultsFile))latestResult.set(r.id,r)
+const category=r=>r.reason==='parse_error'?'parse_error':r.hasTable&&!r.basis&&r.values?.some(v=>v!=null)?'no_basis':r.hasTable&&r.basis&&r.consistent===false?'inconsistent':'other'
+const retryKinds=new Set(String(args.retry||'').split(',').filter(Boolean))
+const done=new Set([...latestResult.values()].filter(r=>!retryKinds.has(category(r))).map(r=>r.id))
+if(retryKinds.size)console.log('재시도 대상',targets.filter(id=>!done.has(id)).length)
 let usage={input:0,output:0}
 async function extract(id){
   if(done.has(id))return
