@@ -24,6 +24,7 @@ import {alternatives} from './shared/catalog.mjs'
 import {createNutrientPlan,assessPlan} from './api/_plan-nutrition.mjs'
 import {mealRequest,mealRequestReply,mealRequestSettings,validateMealContext} from './api/_meal-request.mjs'
 import {chatMemory,mergeMealTurn,hasUserEvidence} from './api/_chat-state.mjs'
+import {runAgent,agentReply} from './api/_agent.mjs'
 const scrypt=promisify(scryptCallback),root=process.env.VERCEL?process.cwd():path.dirname(fileURLToPath(import.meta.url))
 try {for(const line of (await readFile(path.join(root,'.env'),'utf8')).split(/\r?\n/)){const m=line.match(/^([A-Z_]+)=(.*)$/);if(m&&process.env[m[1]]===undefined)process.env[m[1]]=m[2].trim().replace(/^['"]|['"]$/g,'')}}catch(e){if(e.code!=='ENOENT')throw e}
 const rows=JSON.parse(await readFile(path.join(root,'public/data/products.json'),'utf8'))
@@ -33,6 +34,8 @@ const dataStore=await createDataStore(process.env.MILIMARKET_DATA_DIR||path.join
 const publicData=createPublicDataService({saved:()=>officialData(),onResult:(id,provider,value)=>dataStore.put(id,provider,value)})
 // 식약처 일괄 매칭 확정분(배포 포함) 위에 실시간 조회 결과를 겹친다.
 const bulkOfficial=officialEntries(await readFile(path.join(root,'public/data/official-nutrition.json'),'utf8').then(JSON.parse).catch(()=>null))
+// 상품 상세 이미지에서 읽은 검증 전 영양값(에이전트가 확정값과 구분해서만 사용).
+const imageNutrition=await readFile(path.join(root,'public/data/image-nutrition.json'),'utf8').then(t=>JSON.parse(t).records||{}).catch(()=>({}))
 const officialData=()=>mergeOfficialEntries(bulkOfficial,dataStore.entries())
 const currentProducts=()=>applyOfficialData(products,officialData())
 async function generatePlan(input){
@@ -132,7 +135,19 @@ export async function handler(req,res){
           return json(res,200,{...reply,contextReset,chatContext:memory,mealRequestContext:memory.meal,recommendationContext:memory.recommendation})
         }
         // With a key, Claude reads every turn. Regex parsing is only the explicitly labelled no-key demo.
-        const interpreted=await interpretWithClaude(message,history,{conversation,planSettings:contextSettings,productIds:ids,recommendationContext,mealRequestContext:memory.meal})
+        // 기본: Claude가 도구로 직접 답한다(MILIMARKET_AGENT=off로 기존 방식 사용). 식단/초기화 요청은 catalog_query로 기존 흐름에 넘어온다.
+        let interpreted=null
+        if(claudeKey()&&process.env.MILIMARKET_AGENT!=='off'){
+          try{
+            const agent=await runAgent({message,conversation,products:currentProducts(),image:imageNutrition,context:{confirmedMealRequest:memory.meal||null,currentPlanSettings:contextSettings,suppliedProductIds:ids,recommendationContext}})
+            if(agent?.reply){
+              const reply=agentReply(agent,currentProducts())
+              return respond(reply)
+            }
+            if(agent?.legacy)interpreted=agent.legacy
+          }catch(e){console.error('agent 실패, 기존 방식으로 처리:',String(e.message||e).slice(0,160))}
+        }
+        interpreted=interpreted||await interpretWithClaude(message,history,{conversation,planSettings:contextSettings,productIds:ids,recommendationContext,mealRequestContext:memory.meal})
         const demoMeal=interpreted?null:mealRequest(message,memory.meal),continued=interpreted||demoMeal?null:continueRecommendation(message,recommendationContext)
         const query=interpreted||(demoMeal?{intent:'plan'}:continued||interpretDemo(message,history)),mode=interpreted?'claude':'demo'
         if(interpreted&&query.resetContext===true&&hasUserEvidence(query.resetEvidence,[message])){

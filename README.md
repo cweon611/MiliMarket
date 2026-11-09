@@ -142,3 +142,10 @@ node --test tests/*.test.mjs scripts/catalog.test.mjs scripts/order-preferences.
 - 백업·설계·원본 수집자료·검증 파일·문서는 배포 업로드에서 제외했습니다. 테스트와 개발에 필요한 파일은 프로젝트에 유지합니다.
 - 현재 페이지에서 사용하지 않는 `HomeArtwork` 컴포넌트와 도시락 이미지 파일을 정리했습니다. 사용 중인 과일 이미지는 유지했습니다.
 - 공개 사이트는 재배포하지 않았습니다. 10월 15일의 최신 챗봇 품질 보완은 여전히 로컬 소스에만 있습니다.
+
+## 2026-11-09 챗봇: Claude 도구 사용 방식
+
+- `api/_agent.mjs`: Claude가 `search_products`·`rank_by_nutrition`·`get_products`·`find_alternatives` 도구를 직접 호출해 상품·영양 질문에 자연스럽게 답합니다. 가격·영양 숫자는 도구 결과에서만 가져오고, 답변에 근거 없는 숫자가 있으면 한 번 고치게 합니다. 식약처 확정값과 이미지에서 읽은 검증 전 값은 구분해 말합니다.
+- 식단 생성·조건 수정·초기화는 `catalog_query` 도구로 기존 식단 흐름(`api-server.mjs`)에 넘어갑니다. 에이전트가 실패하면 기존 방식으로 처리합니다.
+- `MILIMARKET_AGENT=off`로 기존 방식만 쓸 수 있고, `MILIMARKET_AGENT_MODEL`로 에이전트 모델을 따로 지정할 수 있습니다.
+- 로컬 측정: 인사 약 4초, 상품 추천 5–7초, 영양 순위 6–10초(기존 배포는 9–13초). 배포는 하지 않았습니다.
