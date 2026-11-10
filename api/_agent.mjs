@@ -1,3 +1,4 @@
+import {productIndex} from '../shared/product-index.mjs'
 // Claude가 도구를 직접 호출해 상품·영양 질문에 답하는 에이전트 경로.
 // 숫자(가격·영양)는 도구 결과에서만 가져오고, 답변에 근거 없는 숫자가 있으면 한 번 고치게 한 뒤 서버 요약으로 대체한다.
 // 식단 생성·조건 초기화처럼 상태가 필요한 요청은 catalog_query 도구로 기존 파이프라인에 넘긴다.
@@ -92,11 +93,11 @@ export function runTool(name,input,{products,image}){
     return {nutrient:`${NUTRIENT_META[a.nutrient][0]}(${NUTRIENT_META[a.nutrient][1]})`,basis:`${basis.amount}${basis.unit}`,matchedProducts:list.length,withVerifiedData:verified.length,verified:sort(verified).slice(0,n).map(show),imageReadUnverified:sort(unverified).slice(0,n).map(r=>({...show(r),note:'이미지에서 읽은 검증 전 값'})),note:verified.length||unverified.length?undefined:'조건을 만족하는 영양 자료가 있는 상품이 없음(영양 자료가 없는 상품은 0이 아니라 미제공)'}
   }
   if(name==='get_products'){
-    const ids=(Array.isArray(a.ids)?a.ids:[]).slice(0,8),rows=ids.map(id=>products.find(p=>p.id===id)).filter(Boolean)
+    const ids=(Array.isArray(a.ids)?a.ids:[]).slice(0,8),rows=ids.map(id=>productIndex(products).get(id)).filter(Boolean)
     return {products:rows.map(p=>({...brief(p,image),ingredients:clip(p.ingredients,200)})),missing:ids.filter(id=>!rows.some(p=>p.id===id))}
   }
   if(name==='find_alternatives'){
-    const cur=products.find(p=>p.id===a.id);if(!cur)return {error:'기준 상품을 찾을 수 없음'}
+    const cur=productIndex(products).get(a.id);if(!cur)return {error:'기준 상품을 찾을 수 없음'}
     return {reference:brief(cur,image),alternatives:alternatives(products,cur,safeLimit(a,5)).map(p=>brief(p,image)),note:'g당 단가 비교이며 맛·원재료·영양 동등성은 검증되지 않음'}
   }
   return {error:'알 수 없는 도구'}

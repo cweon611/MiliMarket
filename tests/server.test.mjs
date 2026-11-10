@@ -23,7 +23,7 @@ test('Local API: key status, auth, isolated history, secret files and origin pro
  assert.equal((await request('/api/history')).status,401)
  const auth=await request('/api/register',{email:'test@example.test',password:'Only-for-test-123',name:'테스트'});assert.equal(auth.status,200);assert.match(auth.cookie,/HttpOnly/)
  const cookie=auth.cookie.split(';')[0]
- const saved=await request('/api/history',{settings:{days:1}},cookie);assert.equal(saved.status,200)
+ const saved=await request('/api/history',{settings:{days:1}},cookie);assert.equal(saved.status,200,JSON.stringify(saved.data))
  const history=await request('/api/history',undefined,cookie);assert.equal(history.data.history.length,1)
  const account2=await request('/api/register',{email:'second@example.test',password:'Only-for-test-456',name:'테스트2'});const cookie2=account2.cookie.split(';')[0]
  assert.equal((await request(`/api/history/${saved.data.id}`,undefined,cookie2)).status,404)

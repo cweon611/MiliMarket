@@ -191,3 +191,8 @@
  .search-workspace .quote-hint,.search-workspace .calculator-note{word-break:keep-all;overflow-wrap:anywhere;text-wrap:pretty}
  .search-workspace .spec .sale-unit-label{white-space:nowrap}
 }
+/* Space the card action directly below the available price information. */
+.search-workspace .product-info>.compare-button{margin-top:14px}
+.search-workspace .price>.g-price{margin:0;white-space:nowrap;color:#5b744a;font-size:14px;line-height:1.5}
+.search-workspace .product-item-name{margin:0 0 10px;color:#66735e;font-size:14px;line-height:1.5;word-break:keep-all;overflow-wrap:anywhere}
+.search-workspace .view-columns-4 .product-item-name{font-size:12px}

@@ -1,3 +1,4 @@
+import {productIndex} from '../shared/product-index.mjs'
 import {excludes} from './_planner.mjs'
 import {answerCatalog} from './_catalog-service.mjs'
 import {answerNutrition} from './_nutrition-answer.mjs'
@@ -71,7 +72,7 @@ export async function recommend(products,input,service,{userMessages,semanticInt
  const selected=answer.products.slice(0,limit)
  const priority=q.sort==='price'?'판매 단위 가격':q.sort==='gramPrice'?'중량 대비 단가':nutrientKeys.includes(q.sort)?NUTRIENT_META[q.sort][0]:preferences.map(t=>t.label).join('·')+' 표기'
  const recommendations=selected.map((p,i)=>{
-   const row=answer.comparison?.find(r=>r.id===p.id),original=products.find(x=>x.id===p.id)
+   const row=answer.comparison?.find(r=>r.id===p.id),original=productIndex(products).get(p.id)
    const reasons=[
      ...(q.sort==='price'?[`요청하신 ${q.direction==='desc'?'높은':'낮은'} 가격 기준 ${i+1}순위 · ${fmt(p.unitPrice)}원/${p.unit||'판매 단위'}`]:[]),
      ...(q.sort==='gramPrice'?[`요청하신 ${q.direction==='desc'?'높은':'낮은'} 환산 단가 기준 ${i+1}순위 · ${fmt(p.gramPrice)}원/g`]:[]),

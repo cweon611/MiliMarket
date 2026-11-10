@@ -27,7 +27,7 @@ test('User edits are tracked and kept when energy changes',()=>{
  assert.deepEqual(scaled.sodium,[null,1800]);assert.equal(scaled.sugars,undefined);assert.deepEqual(scaled.protein,[140,165])
 })
 test('DB seed matches the shared standard module',async()=>{
- assert.equal(await readFile(new URL('../db/seed_nutrition_standards.sql',import.meta.url),'utf8'),standardsSql())
+ assert.equal((await readFile(new URL('../db/seed_nutrition_standards.sql',import.meta.url),'utf8')).replace(/\r\n/g,'\n'),standardsSql().replace(/\r\n/g,'\n'))
 })
 
 import {dailyShare,describeStandard} from '../shared/nutrition-standards.mjs'

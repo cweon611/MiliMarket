@@ -37,6 +37,7 @@ export async function createBlobStore(client) {
       for(let attempt=0;attempt<5;attempt++){
         const current=await read(userPath(user.email));if(!current)throw new Error('계정을 찾을 수 없습니다.')
         const value={...current.value,history:[entry,...current.value.history.filter(h=>h.id!==entry.id)].slice(0,20)}
+        if(JSON.stringify(value)===JSON.stringify(current.value))return
         try{await write(userPath(user.email),value,{allowOverwrite:true,ifMatch:current.etag});return}catch(e){if(!(e instanceof sdk.BlobPreconditionFailedError)||attempt===4)throw e}
       }
     },

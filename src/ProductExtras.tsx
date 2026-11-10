@@ -1,23 +1,23 @@
+import {loadProductImages} from '../shared/product-image-loader.mjs'
 import {usePriceUnit} from './PriceUnit'
 import {useEffect,useRef,useState,type ReactNode} from 'react'
 import {FileImage,Package,Maximize2,X} from 'lucide-react'
 import {formatValue,type Product} from './data'
 import {alternatives,gramPrice} from '../shared/catalog.mjs'
 import {nutritionDiffs} from '../shared/alternative-facts.mjs'
-import {api} from './AssistantWorkspace'
+import {api} from './assistant-state'
 export function ProductGallery({product:p,image}:{product:Product;image:ReactNode}) {
   const [active,setActive]=useState(0),[images,setImages]=useState<string[]>([])
   const [state,setState]=useState<'loading'|'ready'|'error'>('loading'),[failed,setFailed]=useState(false),[attempt,setAttempt]=useState(0)
   const zoom=useRef<HTMLDialogElement>(null)
   useEffect(()=>{setActive(0);zoom.current?.close()},[p.id])
   useEffect(()=>{
-    const controller=new AbortController()
+    let active=true
     setImages([]);setFailed(false);setState('loading')
-    fetch(`/api/product-images?id=${p.id}`,{signal:controller.signal})
-      .then(async r=>{if(!r.ok)throw new Error('Image lookup failed');return r.json()})
-      .then(data=>{if(data.id!==p.id||!Array.isArray(data.images))throw new Error('Invalid image list');setImages(data.images);setState('ready')})
-      .catch(()=>{if(!controller.signal.aborted)setState('error')})
-    return ()=>controller.abort()
+    loadProductImages(p.id,attempt>0)
+      .then((data:{images:string[]})=>{if(active){setImages(data.images);setState('ready')}})
+      .catch(()=>{if(active)setState('error')})
+    return ()=>{active=false}
   },[p.id,attempt])
   const choose=(index:number)=>{setActive(index);setFailed(false)}
   const src=images[active]||(active===1?p.market?.labelImageUrl:undefined)

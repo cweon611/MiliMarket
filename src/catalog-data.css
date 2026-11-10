@@ -34,3 +34,4 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .order-inputs label{display:flex;flex-direction:column;gap:5px;color:#617756;font-size:13px}
 .order-inputs input{width:125px;padding:8px;border:1px solid #cddbc3;border-radius:4px;background:#fafcf8}
 @media(max-width:760px){.search-workspace .view-columns-1 .product-card{display:flex}.imported-order-item{display:flex;flex-wrap:wrap}.imported-order-item>div{width:100%}.catalog-pagination{gap:10px}.order-inputs input{width:100px}}
+.food-art .product-image-loading{position:absolute;bottom:7px;left:0;width:100%;text-align:center;font-size:12px;color:#64765c}

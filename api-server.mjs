@@ -1,11 +1,14 @@
 import http from 'node:http'
-import {readFile,stat} from 'node:fs/promises'
+import {readFile} from 'node:fs/promises'
+import {readBody,serveStatic,createRateLimiter} from './api/_http.mjs'
 import path from 'node:path'
 import {fileURLToPath} from 'node:url'
 import {randomBytes,scrypt as scryptCallback,timingSafeEqual,randomUUID} from 'node:crypto'
 import {promisify} from 'node:util'
 import {createLocalStore,createBlobStore} from './account-store.mjs'
 import {mergeCatalog} from './shared/catalog.mjs'
+import {productIndex} from './shared/product-index.mjs'
+import {createCatalogView} from './api/_catalog-view.mjs'
 import {interpretDemo,interpretWithClaude,explainVerified,answerAdvice,clarifyMeal,validateQuery,claudeKey} from './api/_claude.mjs'
 import {answerCatalog} from './api/_catalog-service.mjs'
 import {planSettings,createPlan} from './api/_planner.mjs'
@@ -15,12 +18,12 @@ import {publicProduct} from './shared/catalog.mjs'
 import {getProductImages} from './api/_product-images.mjs'
 import {createPublicDataService} from './api/_public-data.mjs'
 import {answerNutrition} from './api/_nutrition-answer.mjs'
-import {createDataStore,applyOfficialData} from './api/_data-store.mjs'
-import {createMysqlPool,ensureSchema,createMysqlAccountStore,createMysqlDataStore} from './api/_mysql.mjs'
+import {createDataStore} from './api/_data-store.mjs'
+import {createPostgresPool,ensureSchema,createPostgresAccountStore,createPostgresDataStore} from './api/_postgres.mjs'
 import {candidates,lookupBatch} from './api/_retrieval.mjs'
 import {nutrientKeys} from './shared/nutrition.mjs'
 import {alternativeFacts} from './shared/alternative-facts.mjs'
-import {officialEntries,mergeOfficialEntries} from './shared/official-nutrition.mjs'
+import {officialEntries} from './shared/official-nutrition.mjs'
 import {alternatives} from './shared/catalog.mjs'
 import {createNutrientPlan,assessPlan} from './api/_plan-nutrition.mjs'
 import {mealRequest,mealRequestReply,mealRequestSettings,validateMealContext} from './api/_meal-request.mjs'
@@ -31,44 +34,42 @@ try {for(const line of (await readFile(path.join(root,'.env'),'utf8')).split(/\r
 const rows=JSON.parse(await readFile(path.join(root,'public/data/products.json'),'utf8'))
 const market=JSON.parse(await readFile(path.join(root,'public/data/market-enrichment.json'),'utf8'))
 const products=mergeCatalog(rows,market)
-// MYSQL_URL이 있으면 계정·세션·기록·공공데이터 캐시를 MySQL에 둔다(Vercel Blob 미사용). 없으면 로컬 파일 또는 Blob.
-const mysqlPool=process.env.MYSQL_URL?.trim()?await createMysqlPool(process.env.MYSQL_URL.trim()):null
-if(mysqlPool)await ensureSchema(mysqlPool)
-const dataStore=mysqlPool?await createMysqlDataStore(mysqlPool):await createDataStore(process.env.MILIMARKET_DATA_DIR||path.join(root,'.local'),{cloud:!!process.env.VERCEL})
+const productsById=productIndex(products)
+// Postgres가 설정되면 Blob을 사용하지 않는다. 없으면 로컬 파일 또는 Blob을 사용한다.
+const databaseUrl=process.env.DATABASE_URL?.trim()||process.env.POSTGRES_URL?.trim()
+const postgresPool=databaseUrl?await createPostgresPool(databaseUrl):null
+if(postgresPool)await ensureSchema(postgresPool)
+const dataStore=postgresPool?await createPostgresDataStore(postgresPool,{deferWrites:true}):await createDataStore(process.env.MILIMARKET_DATA_DIR||path.join(root,'.local'),{cloud:!!process.env.VERCEL,deferWrites:!!process.env.VERCEL})
 const publicData=createPublicDataService({saved:()=>officialData(),onResult:(id,provider,value)=>dataStore.put(id,provider,value)})
 // 식약처 일괄 매칭 확정분(배포 포함) 위에 실시간 조회 결과를 겹친다.
 const bulkOfficial=officialEntries(await readFile(path.join(root,'public/data/official-nutrition.json'),'utf8').then(JSON.parse).catch(()=>null))
 // 상품 상세 이미지에서 읽은 검증 전 영양값(에이전트가 확정값과 구분해서만 사용).
 const imageNutrition=await readFile(path.join(root,'public/data/image-nutrition.json'),'utf8').then(t=>JSON.parse(t).records||{}).catch(()=>({}))
-const officialData=()=>mergeOfficialEntries(bulkOfficial,dataStore.entries())
-const currentProducts=()=>applyOfficialData(products,officialData())
+const catalogView=createCatalogView(products,bulkOfficial,()=>dataStore.entries())
+const officialData=catalogView.officialData
+const currentProducts=catalogView.products
 async function generatePlan(input){
   const initial=createNutrientPlan(currentProducts(),input)
   const constrained=[...(input.dailyTargets||[]),...(input.mealTargets||[])].some(t=>t.min!=null||t.max!=null)
   if(constrained&&initial.nutritionVerified)return initial
   const seed=constrained?createPlan(currentProducts(),input):initial
   // data.go.kr can take ~10s per call: plan with what arrives quickly; the rest keeps loading and is saved for later plans.
-  const lookups=lookupBatch(seed.purchase.map(p=>products.find(x=>x.id===p.id)).filter(Boolean),publicData,{max:40,deadlineMs:10000}).catch(()=>{})
+  const lookups=lookupBatch(seed.purchase.map(p=>productsById.get(p.id)).filter(Boolean),publicData,{max:40,deadlineMs:10000}).catch(()=>{}).finally(()=>dataStore.flush())
   await Promise.race([lookups,new Promise(r=>setTimeout(r,2500))])
   return constrained?createNutrientPlan(currentProducts(),input):assessPlan(initial,currentProducts())
 }
-const rates=new Map()
+const limit=createRateLimiter()
 const cloud=!!process.env.VERCEL
-const store=mysqlPool?createMysqlAccountStore(mysqlPool):cloud?await createBlobStore():await createLocalStore(process.env.MILIMARKET_DATA_DIR||path.join(root,'.local'))
+const store=postgresPool?createPostgresAccountStore(postgresPool):cloud?await createBlobStore():await createLocalStore(process.env.MILIMARKET_DATA_DIR||path.join(root,'.local'))
 // Lookup results are written once per response instead of once per product.
 const json=async(res,status,data,headers={})=>{await dataStore.flush();res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...headers});res.end(JSON.stringify(data))}
-async function readBody(req){
-  if(!String(req.headers['content-type']).startsWith('application/json'))throw new Error('JSON 형식으로 요청해 주세요.')
-  if(req.body!==undefined){const body=typeof req.body==='string'?req.body:JSON.stringify(req.body);if(Buffer.byteLength(body)>128000)throw new Error('입력 내용이 너무 깁니다.');return JSON.parse(body)}
-  let body='';for await(const chunk of req){body+=chunk;if(Buffer.byteLength(body)>128000)throw new Error('입력 내용이 너무 깁니다.')}return JSON.parse(body)
-}
 const cookieToken=req=>req.headers.cookie?.match(/(?:^|;\s*)mm_session=([a-f0-9]+)/)?.[1]
 // 계정 저장소가 막혀도 나머지 기능은 비로그인 상태로 계속 쓸 수 있게 한다.
-const userOf=req=>store.getSession(cookieToken(req)).catch(e=>{console.error('세션 확인 실패:',e.message);return null})
+const userOf=req=>store.getSession(cookieToken(req),{includeHistory:req.url.startsWith('/api/history')}).catch(e=>{console.error('세션 확인 실패:',e.message);return null})
 const storageDown=e=>/^Blob/.test(e?.name||'')||/Vercel Blob/.test(e?.message||'')
 const safeUser=u=>u?{id:u.id,name:u.name,email:u.email}:null
 async function loginSession(res,user){const id=await store.createSession(user);await json(res,200,{user:safeUser(user)},{'Set-Cookie':`mm_session=${id}; HttpOnly; SameSite=Strict; Path=/; Max-Age=86400${cloud?'; Secure':''}`})}
-function limit(req,key,max){const now=Date.now(),id=`${req.socket.remoteAddress}:${key}`,entry=rates.get(id);if(!entry||entry.until<now){rates.set(id,{n:1,until:now+60000});return true}return ++entry.n<=max}
+
 export async function handler(req,res){
   try {
     const url=new URL(req.url,'http://localhost'),api=url.pathname.startsWith('/api/')
@@ -89,7 +90,7 @@ export async function handler(req,res){
         return json(res,200,{total:pool.length,queried:found.length,next,done:!failed&&next>=pool.length,failed,confirmed:found.filter(e=>e.match==='report_number').length})
       }
       if(url.pathname==='/api/product-data'&&req.method==='GET'){
-        const id=url.searchParams.get('id'),product=/^\d{8}$/.test(id||'')?products.find(p=>String(p.id)===id):null
+        const id=url.searchParams.get('id'),product=/^\d{8}$/.test(id||'')?productsById.get(Number(id)):null
         if(!product)return json(res,404,{error:'등록된 상품을 찾을 수 없습니다.'})
         if(!limit(req,'public-data',12))return json(res,429,{error:'공공 데이터 조회는 분당 12회까지 가능합니다.'})
         return json(res,200,await publicData.productData(product))
@@ -102,13 +103,13 @@ export async function handler(req,res){
         catch{return json(res,502,{error:'나라장터 이미지 조회가 지연되고 있습니다. 다시 시도해 주세요.'})}
       }
       const user=await userOf(req),method=req.method
-      if(url.pathname==='/api/status'&&method==='GET')return json(res,200,{configured:!!claudeKey(),model:process.env.ANTHROPIC_MODEL?.trim()||'claude-sonnet-5-5',catalogCount:products.length,user:safeUser(user),dataProviders:publicData.status(),storage:mysqlPool?'mysql':cloud?'blob':'local'})
+      if(url.pathname==='/api/status'&&method==='GET')return json(res,200,{configured:!!claudeKey(),model:process.env.ANTHROPIC_MODEL?.trim()||'claude-sonnet-5-5',catalogCount:products.length,user:safeUser(user),dataProviders:publicData.status(),storage:postgresPool?'postgres':cloud?'blob':'local'})
       if(['/api/register','/api/login'].includes(url.pathname)&&method==='POST'){
         if(!limit(req,'auth',10))return json(res,429,{error:'로그인 시도가 많습니다. 1분 후 다시 시도해 주세요.'})
         const body=await readBody(req),email=String(body.email||'').trim().toLowerCase(),password=String(body.password||'')
         if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||email.length>120||password.length<8||password.length>128)return json(res,400,{error:'이메일과 8–128자의 비밀번호를 입력해 주세요.'})
         if(url.pathname==='/api/register'){
-          if(await store.findUser(email))return json(res,409,{error:'이미 등록된 이메일입니다.'})
+          if(await store.findUser(email,{includeHistory:false}))return json(res,409,{error:'이미 등록된 이메일입니다.'})
           const salt=randomBytes(16).toString('hex'),hash=(await scrypt(password,salt,64)).toString('hex')
           if(await store.findUser(email))return json(res,409,{error:'이미 등록된 이메일입니다.'})
           const account={id:randomUUID(),email,name:String(body.name||'급식 담당자').trim().slice(0,30)||'급식 담당자',salt,hash,history:[]};await store.createUser(account);return await loginSession(res,account)
@@ -216,14 +217,7 @@ export async function handler(req,res){
       if(url.pathname.startsWith('/api/history/')&&method==='GET'){if(!user)return json(res,401,{error:'로그인이 필요합니다.'});const entry=user.history.find(h=>h.id===url.pathname.split('/').pop());return entry?json(res,200,entry.plan):json(res,404,{error:'저장된 식단을 찾을 수 없습니다.'})}
       return json(res,404,{error:'지원하지 않는 요청입니다.'})
     }
-    if(!['GET','HEAD'].includes(req.method)){res.writeHead(405);return res.end()}
-    const relative=decodeURIComponent(url.pathname)==='/'?'index.html':decodeURIComponent(url.pathname).replace(/^\//,'')
-    const dist=path.join(root,'dist'),file=path.resolve(dist,relative)
-    if(!file.startsWith(dist+path.sep)||relative.split(/[\\/]/).some(s=>s.startsWith('.'))){res.writeHead(404);return res.end()}
-    const info=await stat(file);if(!info.isFile()){res.writeHead(404);return res.end()}
-    const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.webp':'image/webp','.svg':'image/svg+xml','.woff2':'font/woff2'}[path.extname(file)]||'application/octet-stream'
-    res.writeHead(200,{'Content-Type':mime,'X-Content-Type-Options':'nosniff','Cache-Control':relative==='index.html'?'no-cache':'public, max-age=300'})
-    res.end(req.method==='HEAD'?undefined:await readFile(file))
+    return await serveStatic(req,res,url,root)
   }catch(e){if(e.code==='ENOENT'){res.writeHead(404);res.end('Not found')}else if(storageDown(e)){console.error('계정 저장소 오류:',e.message);await json(res,503,{error:'계정 저장소가 일시적으로 중단되어 로그인·회원가입·식단 저장을 할 수 없습니다. AI 채팅과 상품 검색은 로그인 없이 이용할 수 있습니다.'})}else await json(res,e.statusCode||400,{error:e.name==='TimeoutError'?'Claude 응답 시간이 초과되었습니다. 다시 시도해 주세요.':e instanceof SyntaxError?'입력 형식을 확인해 주세요.':String(e.message).slice(0,240)})}
 }
 export const server=http.createServer(handler)

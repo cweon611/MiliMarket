@@ -25,3 +25,16 @@ test('Concurrent history writes preserve both updates with conditional retry',as
  await a.createUser(user);sdk.conflictOnce();await a.saveHistory(user,{id:'own'})
  assert.deepEqual((await a.findUser(user.email)).history.map(h=>h.id),['own','concurrent'])
 })
+
+test('Saving an identical history entry skips Blob upload but changed history is persisted',async()=>{
+ const sdk=memoryBlob(),put=sdk.put;let uploads=0
+ sdk.put=async(...args)=>{uploads++;return put(...args)}
+ const store=await createBlobStore(sdk),user={id:'dedupe',email:'dedupe@example.test',history:[]}
+ await store.createUser(user)
+ const entry={id:'plan',createdAt:'2026-11-09',plan:{settings:{days:7}}}
+ await store.saveHistory(user,entry)
+ const before=uploads
+ await store.saveHistory(user,structuredClone(entry));assert.equal(uploads,before)
+ await store.saveHistory(user,{...entry,plan:{settings:{days:3}}});assert.equal(uploads,before+1)
+ assert.equal((await store.findUser(user.email)).history[0].plan.settings.days,3)
+})

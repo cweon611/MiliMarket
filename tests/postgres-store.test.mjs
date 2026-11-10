@@ -69,3 +69,37 @@ test('Postgres pool: TLS on by default, small pool for serverless',async()=>{
  assert.equal(opts.connectionString,'postgresql://u:p@db.example.test/mili?sslmode=verify-full','require is upgraded to verify-full to silence the pg warning');assert.equal(opts.ssl.rejectUnauthorized,true);assert.ok(opts.max<=5)
  await createPostgresPool('postgresql://u:p@localhost/mili?sslmode=disable',{driver});assert.equal(opts.ssl,false)
 })
+
+test('Postgres deferred cache persists sequential lookups once and ignores unchanged results',async()=>{
+ const pool=fakePool(),store=await createPostgresDataStore(pool,{deferWrites:true})
+ const initial=pool.queries,ok={status:'ok',fetchedAt:'2026-11-09T00:00:00Z'}
+ for(let id=1;id<=40;id++)await store.put(id,'nutrition',ok)
+ assert.equal(pool.queries,initial)
+ await Promise.all([store.flush(),store.flush()])
+ assert.equal(pool.queries,initial+1);assert.equal(pool.publicData.size,40)
+ await store.put(1,'nutrition',structuredClone(ok));await store.flush()
+ assert.equal(pool.queries,initial+1)
+ await store.put(1,'nutrition',{...ok,fetchedAt:'2026-11-09T01:00:00Z'});await store.flush()
+ assert.equal(pool.queries,initial+2)
+})
+
+test('Postgres cache refreshes share one query after the refresh boundary',async()=>{
+ let time=0;const pool=fakePool(),store=await createPostgresDataStore(pool,{now:()=>time})
+ assert.equal(pool.queries,1)
+ await store.refresh();assert.equal(pool.queries,1)
+ time=6*60000;await Promise.all(Array.from({length:10},()=>store.refresh()))
+ assert.equal(pool.queries,2)
+})
+
+test('Postgres sessions skip history reads when not requested, while session revocation stays immediate',async()=>{
+ const pool=fakePool(),store=createPostgresAccountStore(pool),user={id:'u-light',email:'light@example.test',history:[]}
+ await store.createUser(user)
+ const token=await store.createSession(user)
+ await store.saveHistory(user,{id:'history',createdAt:'2026-11-09',plan:{settings:{days:1}}})
+ const start=pool.queries,light=await store.getSession(token,{includeHistory:false})
+ assert.equal(light.id,user.id);assert.deepEqual(light.history,[]);assert.equal(pool.queries-start,2)
+ const fullStart=pool.queries,full=await store.getSession(token)
+ assert.equal(full.history.length,1);assert.equal(pool.queries-fullStart,3)
+ await store.deleteSession(token)
+ assert.equal(await store.getSession(token,{includeHistory:false}),null)
+})
